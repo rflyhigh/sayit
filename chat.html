@@ -126,6 +126,7 @@
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
             padding-bottom: calc(var(--spacing-lg) + var(--safe-area-inset-bottom));
+            position: relative;
         }
 
         .message {
@@ -296,11 +297,16 @@
         }
 
         .typing-indicator {
-            display: none;
+            position: sticky;
+            bottom: 0;
+            background: var(--bg-primary);
             padding: var(--spacing-sm);
             color: var(--text-secondary);
             font-size: 0.875rem;
             font-style: italic;
+            display: none;
+            animation: fadeIn 0.3s ease-out;
+            z-index: 2;
         }
 
         @media (max-width: 640px) {
@@ -363,6 +369,92 @@
                 padding-bottom: env(safe-area-inset-bottom);
             }
         }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        
+        .chat-input-wrapper {
+            display: flex;
+            gap: var(--spacing-md);
+            max-width: 1200px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .chat-toolbar {
+            display: flex;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-xs) 0;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .toolbar-button {
+            background: var(--bg-primary);
+            border: none;
+            color: var(--text-secondary);
+            padding: var(--spacing-xs);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .toolbar-button:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .gif-picker {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent-secondary);
+            border-radius: var(--border-radius);
+            padding: var(--spacing-md);
+            display: none;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+
+        .gif-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--spacing-sm);
+        }
+
+        .gif-item {
+            cursor: pointer;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+
+        .gif-item:hover {
+            transform: scale(1.05);
+        }
+
+        .gif-item img {
+            width: 100%;
+            height: auto;
+        }
+
+        .message img.gif {
+            max-width: 200px;
+            border-radius: var(--border-radius);
+            margin-top: var(--spacing-xs);
+        }
+
+        .emoji-picker {
+            position: absolute;
+            bottom: 100%;
+            left: 0;
+            z-index: 100;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -383,7 +475,11 @@
         </div>
         
         <div class="chat-input">
-            <form id="messageForm">
+            <div class="chat-toolbar">
+                <button class="toolbar-button" id="emojiButton">😊</button>
+                <button class="toolbar-button" id="gifButton">GIF</button>
+            </div>
+            <div class="chat-input-wrapper">
                 <input 
                     type="text" 
                     id="messageInput" 
@@ -391,13 +487,17 @@
                     autocomplete="off"
                     maxlength="500"
                 >
-                <button type="submit">Send</button>
-            </form>
+                <button type="submit" id="sendButton">Send</button>
+                <div class="emoji-picker" id="emojiPicker"></div>
+                <div class="gif-picker" id="gifPicker">
+                    <div class="gif-grid" id="gifGrid"></div>
+                </div>
+            </div>
         </div>
     </div>
 
     <div id="notification" class="notification"></div>
-
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/emoji-mart/3.0.1/emoji-mart.js"></script>
     <script>
         const BASE_URL = window.location.hostname === 'localhost' 
             ? 'ws://localhost:10000'
@@ -526,6 +626,14 @@
             const colorIndex = Array.from(data.sender).reduce((acc, char) => 
                 acc + char.charCodeAt(0), 0) % colors.length;
             
+            let content = escapeHTML(data.content);
+            
+            // Handle GIF messages
+            if (data.content.startsWith('!gif:')) {
+                const gifUrl = data.content.slice(5);
+                content = `<img src="${gifUrl}" class="gif" alt="GIF">`;
+            }
+
             messageDiv.innerHTML = `
                 <div class="avatar" style="background-color: ${colors[colorIndex]}">
                     <div class="avatar-placeholder">${initials}</div>
@@ -535,13 +643,90 @@
                         <span class="author">${data.sender}</span>
                         <span class="timestamp">${formatTimestamp(data.timestamp || Date.now())}</span>
                     </div>
-                    <div class="text">${escapeHTML(data.content)}</div>
+                    <div class="text">${content}</div>
                 </div>
             `;
             
             messages.appendChild(messageDiv);
             scrollToBottom();
         }
+
+        const emojiButton = document.getElementById('emojiButton');
+        const emojiPicker = document.getElementById('emojiPicker');
+        const gifButton = document.getElementById('gifButton');
+        const gifPicker = document.getElementById('gifPicker');
+        const gifGrid = document.getElementById('gifGrid');
+        const sendButton = document.getElementById('sendButton');
+
+        // Initialize emoji picker
+        new EmojiMart.Picker({
+            onSelect: emoji => {
+                messageInput.value += emoji.native;
+                emojiPicker.style.display = 'none';
+            },
+            set: 'native',
+            theme: 'dark',
+            showPreview: false,
+            showSkinTones: false,
+            emojiSize: 20
+        });
+
+        emojiButton.addEventListener('click', () => {
+            emojiPicker.style.display = emojiPicker.style.display === 'none' ? 'block' : 'none';
+            gifPicker.style.display = 'none';
+        });
+
+        // Sample GIF data (replace with your preferred GIF service)
+        const sampleGifs = [
+            'https://media.giphy.com/media/example1.gif',
+            'https://media.giphy.com/media/example2.gif',
+            // Add more sample GIFs
+        ];
+
+        function loadGifs() {
+            gifGrid.innerHTML = sampleGifs.map(gif => `
+                <div class="gif-item" data-gif="${gif}">
+                    <img src="${gif}" alt="GIF">
+                </div>
+            `).join('');
+
+            gifGrid.querySelectorAll('.gif-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const gifUrl = item.dataset.gif;
+                    sendMessage(`!gif:${gifUrl}`);
+                    gifPicker.style.display = 'none';
+                });
+            });
+        }
+
+        gifButton.addEventListener('click', () => {
+            gifPicker.style.display = gifPicker.style.display === 'none' ? 'block' : 'none';
+            emojiPicker.style.display = 'none';
+            if (gifPicker.style.display === 'block') {
+                loadGifs();
+            }
+        });
+
+        // Close pickers when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!emojiPicker.contains(e.target) && e.target !== emojiButton) {
+                emojiPicker.style.display = 'none';
+            }
+            if (!gifPicker.contains(e.target) && e.target !== gifButton) {
+                gifPicker.style.display = 'none';
+            }
+        });
+
+        // Handle Enter key properly
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage(messageInput.value.trim());
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            }
+        });
+
 
         function escapeHTML(text) {
             const div = document.createElement('div');
@@ -617,6 +802,25 @@
                 scrollToBottom();
             }
             viewheight = window.innerHeight;
+        });
+
+        function sendMessage(content) {
+            if (!content || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: content,
+                sender: userName,
+                timestamp: Date.now()
+            }));
+        }
+
+        // Update form submit handler
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessage(messageInput.value.trim());
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
         });
 
         async function loadRoomDetails() {
