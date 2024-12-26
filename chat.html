@@ -504,7 +504,8 @@
 
     <div id="notification" class="notification"></div>
 
-    <script>
+    
+<script>
         const BASE_URL = window.location.hostname === 'localhost' 
             ? 'ws://localhost:10000'
             : 'wss://chat-8ynk.onrender.com';
@@ -524,7 +525,6 @@
         const typingIndicator = document.getElementById('typingIndicator');
         const fileUpload = document.getElementById('fileUpload');
         const uploadButton = document.getElementById('uploadButton');
-        const sendButton = document.getElementById('sendButton');
     
         // Get URL parameters and stored data
         const urlParams = new URLSearchParams(window.location.search);
@@ -544,20 +544,24 @@
             ws = new WebSocket(`${BASE_URL}/ws/${roomCode}`);
     
             ws.onopen = () => {
+                console.log('WebSocket connected');
                 reconnectAttempts = 0;
                 showNotification('Connected to chat room', 'success');
             };
     
             ws.onmessage = (event) => {
+                console.log('WebSocket message received:', event.data);
                 const data = JSON.parse(event.data);
                 handleWebSocketMessage(data);
             };
     
             ws.onclose = () => {
+                console.log('WebSocket closed');
                 handleWebSocketClose();
             };
     
-            ws.onerror = () => {
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
                 showNotification('Connection error', 'error');
             };
         }
@@ -595,6 +599,7 @@
     
         // Message Handling Functions
         function addMessage(data) {
+            console.log('Adding message:', data);
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
             messageDiv.setAttribute('data-message-id', data.id);
@@ -613,7 +618,6 @@
             const colorIndex = Array.from(data.sender).reduce((acc, char) =>
                 acc + char.charCodeAt(0), 0) % colors.length;
     
-            // Handle media content if present
             const mediaContent = generateMediaContent(data);
             const reactionsHTML = generateReactionsHTML(data.reactions);
             const repliesHTML = generateRepliesHTML(data.replies);
@@ -718,6 +722,7 @@
                     await sendReaction(messageId, emoji);
                     showNotification('Reaction sent', 'success');
                 } catch (error) {
+                    console.error('Reaction error:', error);
                     showNotification('Failed to send reaction', 'error');
                 }
             }
@@ -743,6 +748,7 @@
                     replyForm.style.display = 'none';
                     showNotification('Reply sent', 'success');
                 } catch (error) {
+                    console.error('Reply error:', error);
                     showNotification('Failed to send reply', 'error');
                 }
             }
@@ -852,11 +858,6 @@
             return false;
         });
     
-        sendButton.addEventListener('click', (e) => {
-            e.preventDefault();
-            sendMessage();
-        });
-    
         messageInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -864,11 +865,11 @@
             }
         });
     
-        uploadButton?.addEventListener('click', () => {
-            fileUpload?.click();
+        uploadButton.addEventListener('click', () => {
+            fileUpload.click();
         });
     
-        fileUpload?.addEventListener('change', async (e) => {
+        fileUpload.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
     
@@ -892,6 +893,7 @@
                     showNotification('File uploaded successfully', 'success');
                 }
             } catch (error) {
+                console.error('Upload error:', error);
                 showNotification('Failed to upload file', 'error');
             }
     
@@ -908,86 +910,98 @@
         // Message Sending Function
         function sendMessage() {
             const message = messageInput.value.trim();
-            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
-    
-            ws.send(JSON.stringify({
-                type: 'message',
-                content: message,
-                sender: userName,
-                timestamp: Date.now()
-            }));
-    
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
-        }
-    
-        // Typing Indicator Functions
-        function sendTypingIndicator() {
-            if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
-                isTyping = true;
-                ws.send(JSON.stringify({
-                    type: 'typing',
-                    sender: userName
-                }));
-    
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    isTyping = false;
-                }, 2000);
-            }
-        }
-    
-        function handleTypingIndicator(data) {
-            if (data.sender !== userName) {
-                typingIndicator.textContent = `${data.sender} is typing...`;
-                typingIndicator.style.display = 'block';
-    
-                setTimeout(() => {
-                    typingIndicator.style.display = 'none';
-                }, 2000);
-            }
-        }
-    
-        // Mobile Viewport Handling
-        let viewheight = window.innerHeight;
-        window.addEventListener('resize', () => {
-            if (window.innerHeight < viewheight) {
-                scrollToBottom();
-            }
-            viewheight = window.innerHeight;
-        });
-    
-        // Initialize
-        connectWebSocket();
-
-        async function loadRoomDetails() {
-            try {
-                const apiUrl = window.location.hostname === 'localhost' 
-                    ? 'http://localhost:10000'
-                    : 'https://chat-8ynk.onrender.com';
-                
-                const response = await fetch(`${apiUrl}/api/rooms/${roomCode}`);
-                if (!response.ok) throw new Error('Room not found');
-                
-                const room = await response.json();
-                if (room.messages?.length > 0) {
-                    room.messages.forEach(message => addMessage(message));
-                }
-            } catch (error) {
-                showNotification('Failed to load room details', 'error');
-            }
-        }
-
-        connectWebSocket();
-        loadRoomDetails();
-
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').catch(error => {
-                    console.error('ServiceWorker registration failed:', error);
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
+                console.log('Cannot send message:', { 
+                    message: !!message, 
+                    ws: !!ws, 
+                    readyState: ws?.readyState 
                 });
-            });
+                return;
+            }
+
+            console.log('Sending message:', message);
+
+        ws.send(JSON.stringify({
+            type: 'message',
+            content: message,
+            sender: userName,
+            timestamp: Date.now()
+        }));
+
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+    }
+
+    // Typing Indicator Functions
+    function sendTypingIndicator() {
+        if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
+            isTyping = true;
+            ws.send(JSON.stringify({
+                type: 'typing',
+                sender: userName
+            }));
+
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+            }, 2000);
         }
-    </script>
+    }
+
+    function handleTypingIndicator(data) {
+        if (data.sender !== userName) {
+            typingIndicator.textContent = `${data.sender} is typing...`;
+            typingIndicator.style.display = 'block';
+
+            setTimeout(() => {
+                typingIndicator.style.display = 'none';
+            }, 2000);
+        }
+    }
+
+    // Mobile Viewport Handling
+    let viewheight = window.innerHeight;
+    window.addEventListener('resize', () => {
+        if (window.innerHeight < viewheight) {
+            scrollToBottom();
+        }
+        viewheight = window.innerHeight;
+    });
+
+    // Room Loading Function
+    async function loadRoomDetails() {
+        try {
+            const apiUrl = getApiBaseUrl();
+            console.log('Loading room details from:', `${apiUrl}/api/rooms/${roomCode}`);
+            
+            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}`);
+            if (!response.ok) throw new Error('Room not found');
+            
+            const room = await response.json();
+            console.log('Room details loaded:', room);
+            
+            if (room.messages?.length > 0) {
+                room.messages.forEach(message => addMessage(message));
+            }
+        } catch (error) {
+            console.error('Room loading error:', error);
+            showNotification('Failed to load room details', 'error');
+        }
+    }
+
+    // Initialize
+    connectWebSocket();
+    loadRoomDetails();
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js').catch(error => {
+                console.error('ServiceWorker registration failed:', error);
+            });
+        });
+    }
+</script>
+    
+
 </body>
 </html>
