@@ -478,6 +478,82 @@
             color: var(--text-primary);
             background: var(--bg-hover);
         }
+
+        .chat-input-container {
+            display: flex;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--accent-secondary);
+            padding-bottom: calc(var(--spacing-md) + var(--safe-area-inset-bottom));
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .upload-button {
+            background: var(--bg-primary);
+            border: 1px solid var(--accent-secondary);
+            color: var(--text-primary);
+            cursor: pointer;
+            padding: var(--spacing-sm);
+            border-radius: var(--border-radius);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            height: 45px;
+        }
+
+        .upload-button:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-primary);
+        }
+
+        .chat-input {
+            flex: 1;
+            display: flex;
+            gap: var(--spacing-sm);
+        }
+
+        .message-input {
+            flex: 1;
+            padding: var(--spacing-sm) var(--spacing-lg);
+            background: var(--bg-primary);
+            border: 1px solid var(--accent-secondary);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            font-size: 1rem;
+            min-height: 45px;
+            max-height: 120px;
+            resize: none;
+        }
+
+        .message-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .send-button {
+            background: var(--accent-primary);
+            color: var(--text-primary);
+            border: none;
+            border-radius: var(--border-radius);
+            padding: 0 var(--spacing-lg);
+            cursor: pointer;
+            font-weight: 600;
+            min-width: 80px;
+            height: 45px;
+            transition: all 0.2s;
+        }
+
+        .send-button:hover {
+            background: var(--accent-hover);
+        }
     </style>
 </head>
 <body>
@@ -496,33 +572,25 @@
         <div class="chat-messages" id="messages"></div>
         <div class="typing-indicator" id="typingIndicator"></div>
         
-        <div class="chat-input">
-            <form id="messageForm">
+        <div class="chat-input-container">
+            <div class="chat-controls">
+                <input type="file" id="fileUpload" class="file-upload" accept="image/*,video/*" style="display: none;">
+                <button type="button" id="uploadButton" class="upload-button" title="Upload file">
+                    📎
+                </button>
+            </div>
+            <form id="messageForm" class="chat-input">
                 <input 
                     type="text" 
-                    id="messageInput" 
+                    id="messageInput"
+                    class="message-input"
                     placeholder="Type your message..." 
                     autocomplete="off"
                     maxlength="500"
                 >
-                <button type="submit">Send</button>
+                <button type="submit" class="send-button">Send</button>
             </form>
         </div>
-    </div>
-
-    <div class="chat-input">
-        <form id="messageForm">
-            <input type="file" id="fileUpload" class="file-upload" accept="image/*,video/*">
-            <button type="button" id="uploadButton" class="upload-button">📎</button>
-            <input 
-                type="text" 
-                id="messageInput" 
-                placeholder="Type your message..." 
-                autocomplete="off"
-                maxlength="500"
-            >
-            <button type="submit">Send</button>
-        </form>
     </div>
 
     <div id="notification" class="notification"></div>
@@ -660,7 +728,8 @@
             ];
             const colorIndex = Array.from(data.sender).reduce((acc, char) => 
                 acc + char.charCodeAt(0), 0) % colors.length;
-            
+
+            // Handle media content
             let mediaContent = '';
             if (data.media_url) {
                 if (data.media_type?.startsWith('image/')) {
@@ -678,6 +747,7 @@
                 }
             }
 
+            // Handle reactions
             let reactionsHTML = '';
             if (data.reactions && Object.keys(data.reactions).length > 0) {
                 reactionsHTML = `
@@ -691,6 +761,7 @@
                 `;
             }
 
+            // Handle replies
             let repliesHTML = '';
             if (data.replies && data.replies.length > 0) {
                 repliesHTML = `
@@ -698,6 +769,7 @@
                         ${data.replies.map(reply => `
                             <div class="reply">
                                 <strong>${reply.sender}:</strong> ${escapeHTML(reply.content)}
+                                <span class="timestamp">${formatTimestamp(reply.timestamp)}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -721,7 +793,7 @@
                         <button class="action-button react-button">😀 React</button>
                         <button class="action-button reply-button">↩️ Reply</button>
                     </div>
-                    <form class="reply-form">
+                    <form class="reply-form" style="display: none;">
                         <input type="text" class="reply-input" placeholder="Type your reply...">
                         <button type="submit" class="action-button">Send Reply</button>
                     </form>
@@ -734,7 +806,6 @@
             const replyForm = messageDiv.querySelector('.reply-form');
 
             reactButton.addEventListener('click', () => {
-                // Simple emoji picker (you might want to use a proper emoji picker library)
                 const emoji = prompt('Enter an emoji:');
                 if (emoji) {
                     sendReaction(data.id, emoji);
@@ -747,17 +818,22 @@
                     form.style.display = 'none';
                 });
                 replyForm.style.display = 'block';
-                activeReplyTo = data.id;
+                replyForm.querySelector('.reply-input').focus();
             });
 
-            replyForm.addEventListener('submit', (e) => {
+            replyForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const replyInput = replyForm.querySelector('.reply-input');
                 const replyContent = replyInput.value.trim();
                 if (replyContent) {
-                    sendReply(data.id, replyContent);
-                    replyInput.value = '';
-                    replyForm.style.display = 'none';
+                    try {
+                        await sendReply(data.id, replyContent);
+                        replyInput.value = '';
+                        replyForm.style.display = 'none';
+                        showNotification('Reply sent', 'success');
+                    } catch (error) {
+                        showNotification('Failed to send reply', 'error');
+                    }
                 }
             });
             
@@ -926,22 +1002,62 @@
             }
         }
 
-        messageForm.addEventListener('submit', (e) => {
-            e.preventDefault();
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent form submission
             
             const message = messageInput.value.trim();
             if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
             
-            ws.send(JSON.stringify({
-                type: 'message',
-                content: message,
-                sender: userName,
-                timestamp: Date.now()
-            }));
-            
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
+            try {
+                await ws.send(JSON.stringify({
+                    type: 'message',
+                    content: message,
+                    sender: userName,
+                    timestamp: Date.now()
+                }));
+                
+                messageInput.value = '';
+                messageInput.style.height = 'auto';
+            } catch (error) {
+                showNotification('Failed to send message', 'error');
+            }
         });
+
+        // File upload handling
+        uploadButton.addEventListener('click', () => {
+            fileUpload.click();
+        });
+
+        fileUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 32 * 1024 * 1024) {
+                showNotification('File size must be less than 32MB', 'error');
+                return;
+            }
+
+            try {
+                showNotification('Uploading file...', 'success');
+                const upload = await uploadFile(file);
+                if (upload) {
+                    await ws.send(JSON.stringify({
+                        type: 'message',
+                        content: 'Shared a file',
+                        sender: userName,
+                        timestamp: Date.now(),
+                        media_url: upload.url,
+                        media_type: file.type
+                    }));
+                    showNotification('File uploaded successfully', 'success');
+                }
+            } catch (error) {
+                showNotification('Failed to upload file', 'error');
+            }
+
+            fileUpload.value = '';
+        });
+
 
         messageInput.addEventListener('input', (e) => {
             e.target.style.height = 'auto';
