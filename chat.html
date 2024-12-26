@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat Room</title>
     <style>
-         :root {
+        :root {
             --bg-primary: #18181b;
             --bg-secondary: #27272a;
             --bg-hover: #2d2d30;
@@ -43,8 +43,6 @@
             height: -webkit-fill-available;
             overflow: hidden;
             line-height: 1.5;
-            position: fixed;
-            width: 100%;
         }
 
         html {
@@ -96,9 +94,31 @@
             user-select: all;
         }
 
+        .room-code:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .user-count {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .user-count-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: inline-block;
+        }
+
         .chat-messages {
             flex: 1;
             overflow-y: auto;
+            overflow-x: hidden;
             padding: var(--spacing-lg);
             display: flex;
             flex-direction: column;
@@ -118,79 +138,150 @@
             max-width: 100%;
         }
 
-        .chat-input-container {
-            padding: var(--spacing-md);
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--accent-secondary);
-            position: sticky;
-            bottom: 0;
+        @keyframes messageSlide {
+            from { 
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: var(--accent-primary);
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
+
+        .avatar-placeholder {
             width: 100%;
-            padding-bottom: calc(var(--spacing-md) + var(--safe-area-inset-bottom));
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.125rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+            padding-right: var(--spacing-sm);
+        }
+
+        .message-header {
+            display: flex;
+            align-items: baseline;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .author {
+            color: var(--accent-primary);
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .timestamp {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .text {
+            color: var(--text-primary);
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.9375rem;
+            line-height: 1.5;
         }
 
         .chat-input {
+            padding: var(--spacing-md) var(--spacing-lg);
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--accent-secondary);
+            position: relative;
+            z-index: 10;
+            padding-bottom: calc(var(--spacing-md) + var(--safe-area-inset-bottom));
+        }
+
+        .chat-input form {
             display: flex;
-            gap: var(--spacing-sm);
+            gap: var(--spacing-md);
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        .message-input {
+        .chat-input input {
             flex: 1;
-            padding: var(--spacing-sm) var(--spacing-lg);
+            padding: var(--spacing-md) var(--spacing-lg);
             background: var(--bg-primary);
-            border: 1px solid var(--accent-secondary);
+            border: 2px solid var(--accent-secondary);
             border-radius: var(--border-radius);
             color: var(--text-primary);
             font-size: 1rem;
+            transition: all 0.2s;
+            resize: none;
+            line-height: 1.5;
             min-height: 45px;
             max-height: 120px;
-            resize: none;
-            width: 100%;
         }
 
-        .send-button {
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .chat-input button {
+            padding: var(--spacing-md) var(--spacing-lg);
             background: var(--accent-primary);
             color: var(--text-primary);
             border: none;
             border-radius: var(--border-radius);
-            padding: 0 var(--spacing-lg);
-            height: 45px;
             cursor: pointer;
+            transition: all 0.2s;
             font-weight: 600;
+            font-size: 1rem;
             min-width: 80px;
-            white-space: nowrap;
             display: flex;
             align-items: center;
             justify-content: center;
+            gap: var(--spacing-xs);
         }
 
-        @media (max-width: 640px) {
-            .chat-input-container {
-                padding: var(--spacing-sm);
-            }
-            
-            .message-input {
-                padding: var(--spacing-sm);
-            }
-            
-            .send-button {
-                padding: 0 var(--spacing-md);
-                min-width: 60px;
-            }
+        .chat-input button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .chat-input button:active {
+            transform: translateY(0);
         }
 
         .notification {
             position: fixed;
-            bottom: calc(var(--footer-height) + var(--spacing-lg));
+            bottom: calc(var(--footer-height) + var(--spacing-lg) + var(--safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             padding: var(--spacing-md) var(--spacing-lg);
             border-radius: var(--border-radius);
             color: var(--text-primary);
             display: none;
+            animation: slideUp 0.3s ease-out;
             z-index: 1000;
             max-width: calc(100% - 2rem);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         @keyframes slideUp {
@@ -274,194 +365,116 @@
                 padding-bottom: env(safe-area-inset-bottom);
             }
         }
-        
-        .message-actions {
-            display: flex;
-            gap: var(--spacing-sm);
-            margin-top: var(--spacing-xs);
-            color: var(--text-secondary);
-            font-size: 0.875rem;
-        }
-
-        .action-button {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius);
-            transition: all 0.2s;
-            font-size: 0.875rem;
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xs);
-        }
-
-        .action-button:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        .reactions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-xs);
-            margin-top: var(--spacing-xs);
-        }
-
-        .reaction {
-            background: var(--bg-hover);
-            padding: var(--spacing-xs) var(--spacing-sm);
-            border-radius: var(--border-radius);
-            font-size: 0.875rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xs);
-        }
-
-        .reaction:hover {
-            background: var(--accent-secondary);
-        }
-
-        .replies {
-            margin-top: var(--spacing-sm);
-            padding-left: var(--spacing-lg);
-            border-left: 2px solid var(--accent-secondary);
-        }
-
-        .reply {
-            padding: var(--spacing-xs) var(--spacing-sm);
-            margin-bottom: var(--spacing-xs);
-            background: var(--bg-hover);
-            border-radius: var(--border-radius);
-            font-size: 0.875rem;
-        }
-
-        .reply-form {
-            display: none;
-            margin-top: var(--spacing-xs);
-        }
-
-        .reply-input {
-            width: 100%;
-            padding: var(--spacing-sm);
-            background: var(--bg-primary);
-            border: 1px solid var(--accent-secondary);
-            border-radius: var(--border-radius);
-            color: var(--text-primary);
-            font-size: 0.875rem;
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .media-preview {
-            max-width: 300px;
-            max-height: 200px;
-            margin-top: var(--spacing-sm);
-            border-radius: var(--border-radius);
-            overflow: hidden;
-        }
-
-        .media-preview img, 
-        .media-preview video {
-            max-width: 100%;
-            height: auto;
-        }
-
-        .file-upload {
-            display: none;
-        }
 
         .upload-button {
-            background: none;
+            position: fixed;
+            bottom: calc(var(--footer-height) + var(--spacing-lg));
+            right: var(--spacing-lg);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--accent-primary);
             border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: var(--spacing-xs);
-            border-radius: var(--border-radius);
-            transition: all 0.2s;
-        }
-
-        .upload-button:hover {
-            color: var(--text-primary);
-            background: var(--bg-hover);
-        }
-
-        .chat-input-container {
-            display: flex;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-md) var(--spacing-lg);
-            background: var(--bg-secondary);
-            border-top: 1px solid var(--accent-secondary);
-            padding-bottom: calc(var(--spacing-md) + var(--safe-area-inset-bottom));
-        }
-
-        .chat-controls {
-            display: flex;
-            gap: var(--spacing-sm);
-            align-items: center;
-        }
-
-        .upload-button {
-            background: var(--bg-primary);
-            border: 1px solid var(--accent-secondary);
-            color: var(--text-primary);
-            cursor: pointer;
-            padding: var(--spacing-sm);
-            border-radius: var(--border-radius);
-            transition: all 0.2s;
+            color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-width: 40px;
-            height: 45px;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
+            z-index: 100;
         }
 
         .upload-button:hover {
-            background: var(--bg-hover);
-            border-color: var(--accent-primary);
-        }
-
-        .chat-input {
-            flex: 1;
-            display: flex;
-            gap: var(--spacing-sm);
-        }
-
-        .message-input {
-            flex: 1;
-            padding: var(--spacing-sm) var(--spacing-lg);
-            background: var(--bg-primary);
-            border: 1px solid var(--accent-secondary);
-            border-radius: var(--border-radius);
-            color: var(--text-primary);
-            font-size: 1rem;
-            min-height: 45px;
-            max-height: 120px;
-            resize: none;
-        }
-
-        .message-input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
-
-        .send-button {
-            background: var(--accent-primary);
-            color: var(--text-primary);
-            border: none;
-            border-radius: var(--border-radius);
-            padding: 0 var(--spacing-lg);
-            cursor: pointer;
-            font-weight: 600;
-            min-width: 80px;
-            height: 45px;
-            transition: all 0.2s;
-        }
-
-        .send-button:hover {
             background: var(--accent-hover);
+            transform: scale(1.05);
+        }
+
+        .upload-button:active {
+            transform: scale(0.95);
+        }
+
+        .upload-icon {
+            width: 24px;
+            height: 24px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .message-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: var(--border-radius);
+            margin-top: var(--spacing-sm);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .message-image:hover {
+            transform: scale(1.02);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--text-secondary);
+            border-top: 4px solid var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .image-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            padding: var(--spacing-lg);
+        }
+
+        .modal-image {
+            max-width: 100%;
+            max-height: 90vh;
+            object-fit: contain;
+        }
+
+        @media (max-width: 640px) {
+            .upload-button {
+                bottom: calc(var(--footer-height) + var(--spacing-md));
+                right: var(--spacing-md);
+                width: 45px;
+                height: 45px;
+            }
+
+            .upload-icon {
+                width: 20px;
+                height: 20px;
+            }
         }
     </style>
 </head>
@@ -481,41 +494,48 @@
         <div class="chat-messages" id="messages"></div>
         <div class="typing-indicator" id="typingIndicator"></div>
         
-        <div class="chat-input-container">
-            <div class="chat-controls">
-                <input type="file" id="fileUpload" class="file-upload" accept="image/*,video/*" style="display: none;">
-                <button type="button" id="uploadButton" class="upload-button" title="Upload file">
-                    📎
-                </button>
-            </div>
-            <form id="messageForm" class="chat-input">
+        <div class="chat-input">
+            <form id="messageForm">
                 <input 
                     type="text" 
-                    id="messageInput"
-                    class="message-input"
+                    id="messageInput" 
                     placeholder="Type your message..." 
                     autocomplete="off"
                     maxlength="500"
                 >
-                <button type="submit" class="send-button">Send</button>
+                <button type="submit">Send</button>
             </form>
         </div>
     </div>
 
+    <button class="upload-button" id="uploadButton" title="Upload image">
+        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7m4-5l5-5l5 5m-5-5v17"/>
+        </svg>
+    </button>
+    
+    <input type="file" id="fileInput" accept="image/*">
+    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="image-modal" id="imageModal">
+        <img class="modal-image" id="modalImage" src="" alt="Full size image">
+    </div>
+
     <div id="notification" class="notification"></div>
 
-    
-<script>
+    <script>
         const BASE_URL = window.location.hostname === 'localhost' 
             ? 'ws://localhost:10000'
             : 'wss://chat-8ynk.onrender.com';
-    
+
         let ws = null;
         let reconnectAttempts = 0;
         let isTyping = false;
         let typingTimeout = null;
-        let activeReplyTo = null;
-    
+        
         const messages = document.getElementById('messages');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
@@ -523,106 +543,183 @@
         const userCountElement = document.getElementById('userCount');
         const notificationElement = document.getElementById('notification');
         const typingIndicator = document.getElementById('typingIndicator');
-        const fileUpload = document.getElementById('fileUpload');
-        const uploadButton = document.getElementById('uploadButton');
-    
-        // Get URL parameters and stored data
+
         const urlParams = new URLSearchParams(window.location.search);
         const roomCode = urlParams.get('room');
         const userName = localStorage.getItem('chatName');
-    
-        // Redirect if missing required parameters
+
+        const uploadButton = document.getElementById('uploadButton');
+        const fileInput = document.getElementById('fileInput');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+
+        uploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 32 * 1024 * 1024) {
+                showNotification('Image size must be less than 32MB', 'error');
+                return;
+            }
+
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showNotification('Invalid file type. Please upload an image.', 'error');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const apiUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:10000'
+                    : 'https://chat-8ynk.onrender.com';
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${apiUrl}/api/upload-image/${roomCode}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+
+                // Send message with image
+                ws.send(JSON.stringify({
+                    type: 'message',
+                    content: '📷 Shared an image',
+                    image_url: result.image_url,
+                    sender: userName,
+                    timestamp: Date.now()
+                }));
+
+            } catch (error) {
+                showNotification('Failed to upload image', 'error');
+                console.error('Upload error:', error);
+            } finally {
+                loadingOverlay.style.display = 'none';
+                fileInput.value = ''; // Reset file input
+            }
+        });
+
+
         if (!roomCode || !userName) {
             window.location.href = '/';
-            throw new Error('Missing required parameters');
         }
-    
+
         roomCodeElement.textContent = roomCode;
-    
-        // Core WebSocket Functions
+
+        roomCodeElement.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(roomCode);
+                showNotification('Room code copied to clipboard', 'success');
+            } catch (err) {
+                showNotification('Failed to copy room code', 'error');
+            }
+        });
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
+            return date.toLocaleString();
+        }
+
+        function showNotification(message, type = 'success') {
+            notificationElement.textContent = message;
+            notificationElement.style.display = 'block';
+            notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
+            
+            setTimeout(() => {
+                notificationElement.style.display = 'none';
+            }, 3000);
+        }
+
         function connectWebSocket() {
             ws = new WebSocket(`${BASE_URL}/ws/${roomCode}`);
-    
+
             ws.onopen = () => {
-                console.log('WebSocket connected');
                 reconnectAttempts = 0;
                 showNotification('Connected to chat room', 'success');
             };
-    
+
             ws.onmessage = (event) => {
-                console.log('WebSocket message received:', event.data);
                 const data = JSON.parse(event.data);
-                handleWebSocketMessage(data);
+                if (data.type === 'typing') {
+                    handleTypingIndicator(data);
+                } else if (data.type === 'user_count') {
+                    userCountElement.textContent = data.count;
+                } else {
+                    addMessage(data);
+                }
             };
-    
+
             ws.onclose = () => {
-                console.log('WebSocket closed');
-                handleWebSocketClose();
+                if (reconnectAttempts < 5) {
+                    showNotification('Reconnecting...', 'error');
+                    setTimeout(() => {
+                        reconnectAttempts++;
+                        connectWebSocket();
+                    }, 1000 * Math.min(reconnectAttempts + 1, 5));
+                } else {
+                    showNotification('Connection lost. Please refresh the page.', 'error');
+                }
             };
-    
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
+
+            ws.onerror = () => {
                 showNotification('Connection error', 'error');
             };
         }
-    
-        function handleWebSocketMessage(data) {
-            switch (data.type) {
-                case 'typing':
-                    handleTypingIndicator(data);
-                    break;
-                case 'user_count':
-                    userCountElement.textContent = data.count;
-                    break;
-                case 'reaction':
-                    handleReaction(data);
-                    break;
-                case 'reply':
-                    handleReply(data);
-                    break;
-                default:
-                    addMessage(data);
-            }
-        }
-    
-        function handleWebSocketClose() {
-            if (reconnectAttempts < 5) {
-                showNotification('Reconnecting...', 'error');
+
+        function handleTypingIndicator(data) {
+            if (data.sender !== userName) {
+                typingIndicator.textContent = `${data.sender} is typing...`;
+                typingIndicator.style.display = 'block';
+                
                 setTimeout(() => {
-                    reconnectAttempts++;
-                    connectWebSocket();
-                }, 1000 * Math.min(reconnectAttempts + 1, 5));
-            } else {
-                showNotification('Connection lost. Please refresh the page.', 'error');
+                    typingIndicator.style.display = 'none';
+                }, 2000);
             }
         }
-    
-        // Message Handling Functions
+
         function addMessage(data) {
-            console.log('Adding message:', data);
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
-            messageDiv.setAttribute('data-message-id', data.id);
-    
+            
             const initials = data.sender
                 .split(' ')
                 .map(word => word[0])
                 .join('')
                 .toUpperCase()
                 .slice(0, 2);
-    
+            
             const colors = [
-                '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
+                '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', 
                 '#6366F1', '#8B5CF6', '#D946EF'
             ];
-            const colorIndex = Array.from(data.sender).reduce((acc, char) =>
+            const colorIndex = Array.from(data.sender).reduce((acc, char) => 
                 acc + char.charCodeAt(0), 0) % colors.length;
-    
-            const mediaContent = generateMediaContent(data);
-            const reactionsHTML = generateReactionsHTML(data.reactions);
-            const repliesHTML = generateRepliesHTML(data.replies);
-    
-            messageDiv.innerHTML = `
+            
+            let messageContent = `
                 <div class="avatar" style="background-color: ${colors[colorIndex]}">
                     <div class="avatar-placeholder">${initials}</div>
                 </div>
@@ -632,376 +729,176 @@
                         <span class="timestamp">${formatTimestamp(data.timestamp || Date.now())}</span>
                     </div>
                     <div class="text">${escapeHTML(data.content)}</div>
-                    ${mediaContent}
-                    ${reactionsHTML}
-                    ${repliesHTML}
-                    <div class="message-actions">
-                        <button class="action-button react-button">😀 React</button>
-                        <button class="action-button reply-button">↩️ Reply</button>
-                    </div>
-                    <form class="reply-form" style="display: none;">
-                        <input type="text" class="reply-input" placeholder="Type your reply...">
-                        <button type="submit" class="action-button">Send Reply</button>
-                    </form>
-                </div>
             `;
-    
-            attachMessageEventListeners(messageDiv, data.id);
+
+            if (data.image_url) {
+                messageContent += `
+                    <img src="${data.image_url}" alt="Shared image" 
+                         class="message-image" 
+                         onclick="showImageModal('${data.image_url}')"
+                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'%3E%3Crect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\'/%3E%3Ccircle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/%3E%3Cpolyline points=\'21 15 16 10 5 21\'/%3E%3C/svg%3E';"
+                    >
+                `;
+            }
+
+            messageContent += `</div>`;
+            messageDiv.innerHTML = messageContent;
+            
             messages.appendChild(messageDiv);
             scrollToBottom();
         }
-    
-        // Helper Functions for Message Content
-        function generateMediaContent(data) {
-            if (!data.media_url) return '';
-    
-            if (data.media_type?.startsWith('image/')) {
-                return `
-                    <div class="media-preview">
-                        <img src="${data.media_url}" alt="Uploaded image">
-                    </div>
-                `;
+
+        function showImageModal(url) {
+            modalImage.src = url;
+            imageModal.style.display = 'flex';
+        }
+
+        imageModal.addEventListener('click', () => {
+            imageModal.style.display = 'none';
+        });
+
+        // Optional: Handle escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && imageModal.style.display === 'flex') {
+                imageModal.style.display = 'none';
             }
-    
-            if (data.media_type?.startsWith('video/')) {
-                return `
-                    <div class="media-preview">
-                        <video src="${data.media_url}" controls></video>
-                    </div>
-                `;
-            }
-    
-            return '';
-        }
-    
-        function generateReactionsHTML(reactions) {
-            if (!reactions || Object.keys(reactions).length === 0) return '';
-    
-            return `
-                <div class="reactions">
-                    ${Object.entries(reactions).map(([emoji, reaction]) => `
-                        <div class="reaction" data-emoji="${emoji}">
-                            ${emoji} ${reaction.count}
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-    
-        function generateRepliesHTML(replies) {
-            if (!replies || replies.length === 0) return '';
-    
-            return `
-                <div class="replies">
-                    ${replies.map(reply => `
-                        <div class="reply">
-                            <strong>${reply.sender}:</strong> ${escapeHTML(reply.content)}
-                            <span class="timestamp">${formatTimestamp(reply.timestamp)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }
-    
-        // Event Listeners for Message Elements
-        function attachMessageEventListeners(messageDiv, messageId) {
-            const reactButton = messageDiv.querySelector('.react-button');
-            const replyButton = messageDiv.querySelector('.reply-button');
-            const replyForm = messageDiv.querySelector('.reply-form');
-    
-            reactButton.addEventListener('click', () => handleReactionClick(messageId));
-            replyButton.addEventListener('click', () => handleReplyButtonClick(replyForm));
-            replyForm.addEventListener('submit', (e) => handleReplySubmit(e, messageId, replyForm));
-        }
-    
-        // Message Action Handlers
-        async function handleReactionClick(messageId) {
-            const emoji = prompt('Enter an emoji:');
-            if (emoji) {
-                try {
-                    await sendReaction(messageId, emoji);
-                    showNotification('Reaction sent', 'success');
-                } catch (error) {
-                    console.error('Reaction error:', error);
-                    showNotification('Failed to send reaction', 'error');
-                }
-            }
-        }
-    
-        function handleReplyButtonClick(replyForm) {
-            document.querySelectorAll('.reply-form').forEach(form => {
-                form.style.display = 'none';
-            });
-            replyForm.style.display = 'block';
-            replyForm.querySelector('.reply-input').focus();
-        }
-    
-        async function handleReplySubmit(e, messageId, replyForm) {
-            e.preventDefault();
-            const replyInput = replyForm.querySelector('.reply-input');
-            const replyContent = replyInput.value.trim();
-            
-            if (replyContent) {
-                try {
-                    await sendReply(messageId, replyContent);
-                    replyInput.value = '';
-                    replyForm.style.display = 'none';
-                    showNotification('Reply sent', 'success');
-                } catch (error) {
-                    console.error('Reply error:', error);
-                    showNotification('Failed to send reply', 'error');
-                }
-            }
-        }
-    
-        // API Interaction Functions
-        async function sendReaction(messageId, emoji) {
-            const apiUrl = getApiBaseUrl();
-            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/messages/${messageId}/react`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    emoji,
-                    user_id: userName
-                })
-            });
-    
-            if (!response.ok) throw new Error('Failed to send reaction');
-        }
-    
-        async function sendReply(messageId, content) {
-            const apiUrl = getApiBaseUrl();
-            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/messages/${messageId}/reply`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    content,
-                    sender: userName
-                })
-            });
-    
-            if (!response.ok) throw new Error('Failed to send reply');
-        }
-    
-        async function uploadFile(file) {
-            const apiUrl = getApiBaseUrl();
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('sender', userName);
-    
-            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/upload`, {
-                method: 'POST',
-                body: formData
-            });
-    
-            if (!response.ok) throw new Error('Failed to upload file');
-            return response.json();
-        }
-    
-        // Utility Functions
-        function getApiBaseUrl() {
-            return window.location.hostname === 'localhost'
-                ? 'http://localhost:10000'
-                : 'https://chat-8ynk.onrender.com';
-        }
-    
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMins / 60);
-            const diffDays = Math.floor(diffHours / 24);
-    
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-    
-            return date.toLocaleString();
-        }
-    
+        });
+
         function escapeHTML(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-    
+
         function scrollToBottom() {
-            messages.scrollTop = messages.scrollHeight;
+            const lastMessage = messages.lastElementChild;
+            if (lastMessage) {
+                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
         }
-    
-        function showNotification(message, type = 'success') {
-            notificationElement.textContent = message;
-            notificationElement.style.display = 'block';
-            notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
-    
-            setTimeout(() => {
-                notificationElement.style.display = 'none';
-            }, 3000);
+
+        function sendTypingIndicator() {
+            if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
+                isTyping = true;
+                ws.send(JSON.stringify({
+                    type: 'typing',
+                    sender: userName
+                }));
+
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                }, 2000);
+            }
         }
-    
-        // Event Listeners
+
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: message,
+                sender: userName,
+                timestamp: Date.now()
+            }));
+            
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+        });
+
         messageInput.addEventListener('input', (e) => {
             e.target.style.height = 'auto';
             e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            
             sendTypingIndicator();
         });
-    
-        messageForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            sendMessage();
-            return false;
-        });
-    
-        messageInput.addEventListener('keydown', (e) => {
+
+        messageInput.addEventListener('keydown', function(e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                sendMessage();
+                messageForm.dispatchEvent(new Event('submit'));
             }
         });
-    
-        uploadButton.addEventListener('click', () => {
-            fileUpload.click();
-        });
-    
-        fileUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-    
-            if (file.size > 32 * 1024 * 1024) {
-                showNotification('File size must be less than 32MB', 'error');
-                return;
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                if (!ws || ws.readyState === WebSocket.CLOSED) {
+                    reconnectAttempts = 0;
+                    connectWebSocket();
+                }
             }
-    
+        });
+
+        let viewheight = window.innerHeight;
+        window.addEventListener('resize', () => {
+            if (window.innerHeight < viewheight) {
+                scrollToBottom();
+            }
+            viewheight = window.innerHeight;
+        });
+
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: message,
+                sender: userName,
+                timestamp: Date.now()
+            }));
+            
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            return false; // Prevent form submission
+        });
+
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const submitEvent = new Event('submit', {
+                    cancelable: true,
+                    bubbles: true
+                });
+                messageForm.dispatchEvent(submitEvent);
+                return false;
+            }
+        });
+
+
+        async function loadRoomDetails() {
             try {
-                showNotification('Uploading file...', 'success');
-                const upload = await uploadFile(file);
-                if (upload) {
-                    ws.send(JSON.stringify({
-                        type: 'message',
-                        content: 'Shared a file',
-                        sender: userName,
-                        timestamp: Date.now(),
-                        media_url: upload.url,
-                        media_type: file.type
-                    }));
-                    showNotification('File uploaded successfully', 'success');
+                const apiUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:10000'
+                    : 'https://chat-8ynk.onrender.com';
+                
+                const response = await fetch(`${apiUrl}/api/rooms/${roomCode}`);
+                if (!response.ok) throw new Error('Room not found');
+                
+                const room = await response.json();
+                if (room.messages?.length > 0) {
+                    room.messages.forEach(message => addMessage(message));
                 }
             } catch (error) {
-                console.error('Upload error:', error);
-                showNotification('Failed to upload file', 'error');
+                showNotification('Failed to load room details', 'error');
             }
-    
-            fileUpload.value = '';
-        });
-    
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible' && (!ws || ws.readyState === WebSocket.CLOSED)) {
-                reconnectAttempts = 0;
-                connectWebSocket();
-            }
-        });
-    
-        // Message Sending Function
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
-                console.log('Cannot send message:', { 
-                    message: !!message, 
-                    ws: !!ws, 
-                    readyState: ws?.readyState 
+        }
+
+        connectWebSocket();
+        loadRoomDetails();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(error => {
+                    console.error('ServiceWorker registration failed:', error);
                 });
-                return;
-            }
-
-            console.log('Sending message:', message);
-
-        ws.send(JSON.stringify({
-            type: 'message',
-            content: message,
-            sender: userName,
-            timestamp: Date.now()
-        }));
-
-        messageInput.value = '';
-        messageInput.style.height = 'auto';
-    }
-
-    // Typing Indicator Functions
-    function sendTypingIndicator() {
-        if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
-            isTyping = true;
-            ws.send(JSON.stringify({
-                type: 'typing',
-                sender: userName
-            }));
-
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                isTyping = false;
-            }, 2000);
-        }
-    }
-
-    function handleTypingIndicator(data) {
-        if (data.sender !== userName) {
-            typingIndicator.textContent = `${data.sender} is typing...`;
-            typingIndicator.style.display = 'block';
-
-            setTimeout(() => {
-                typingIndicator.style.display = 'none';
-            }, 2000);
-        }
-    }
-
-    // Mobile Viewport Handling
-    let viewheight = window.innerHeight;
-    window.addEventListener('resize', () => {
-        if (window.innerHeight < viewheight) {
-            scrollToBottom();
-        }
-        viewheight = window.innerHeight;
-    });
-
-    // Room Loading Function
-    async function loadRoomDetails() {
-        try {
-            const apiUrl = getApiBaseUrl();
-            console.log('Loading room details from:', `${apiUrl}/api/rooms/${roomCode}`);
-            
-            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}`);
-            if (!response.ok) throw new Error('Room not found');
-            
-            const room = await response.json();
-            console.log('Room details loaded:', room);
-            
-            if (room.messages?.length > 0) {
-                room.messages.forEach(message => addMessage(message));
-            }
-        } catch (error) {
-            console.error('Room loading error:', error);
-            showNotification('Failed to load room details', 'error');
-        }
-    }
-
-    // Initialize
-    connectWebSocket();
-    loadRoomDetails();
-
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(error => {
-                console.error('ServiceWorker registration failed:', error);
             });
-        });
-    }
-</script>
-    
-
+        }
+    </script>
 </body>
 </html>
