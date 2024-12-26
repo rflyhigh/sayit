@@ -1002,26 +1002,7 @@
             }
         }
 
-        messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Prevent form submission
-            
-            const message = messageInput.value.trim();
-            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
-            
-            try {
-                await ws.send(JSON.stringify({
-                    type: 'message',
-                    content: message,
-                    sender: userName,
-                    timestamp: Date.now()
-                }));
-                
-                messageInput.value = '';
-                messageInput.style.height = 'auto';
-            } catch (error) {
-                showNotification('Failed to send message', 'error');
-            }
-        });
+        
 
         // File upload handling
         uploadButton.addEventListener('click', () => {
