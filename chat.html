@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat Room</title>
     <style>
-        :root {
+         :root {
             --bg-primary: #18181b;
             --bg-secondary: #27272a;
             --bg-hover: #2d2d30;
@@ -43,6 +43,8 @@
             height: -webkit-fill-available;
             overflow: hidden;
             line-height: 1.5;
+            position: fixed;
+            width: 100%;
         }
 
         html {
@@ -94,31 +96,9 @@
             user-select: all;
         }
 
-        .room-code:hover {
-            background: var(--bg-hover);
-            color: var(--text-primary);
-        }
-
-        .user-count {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            display: flex;
-            align-items: center;
-            gap: var(--spacing-xs);
-        }
-
-        .user-count-dot {
-            width: 8px;
-            height: 8px;
-            background-color: var(--success);
-            border-radius: 50%;
-            display: inline-block;
-        }
-
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            overflow-x: hidden;
             padding: var(--spacing-lg);
             display: flex;
             flex-direction: column;
@@ -138,150 +118,79 @@
             max-width: 100%;
         }
 
-        @keyframes messageSlide {
-            from { 
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to { 
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .message:hover {
-            background-color: var(--bg-hover);
-        }
-
-        .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            overflow: hidden;
-            background-color: var(--accent-primary);
-            flex-shrink: 0;
-            opacity: 0.9;
-        }
-
-        .avatar-placeholder {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 1.125rem;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-        }
-
-        .message-content {
-            flex: 1;
-            min-width: 0;
-            padding-right: var(--spacing-sm);
-        }
-
-        .message-header {
-            display: flex;
-            align-items: baseline;
-            gap: var(--spacing-sm);
-            margin-bottom: var(--spacing-xs);
-        }
-
-        .author {
-            color: var(--accent-primary);
-            font-weight: 600;
-            font-size: 0.9375rem;
-        }
-
-        .timestamp {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-        }
-
-        .text {
-            color: var(--text-primary);
-            white-space: pre-wrap;
-            word-break: break-word;
-            font-size: 0.9375rem;
-            line-height: 1.5;
-        }
-
-        .chat-input {
-            padding: var(--spacing-md) var(--spacing-lg);
+        .chat-input-container {
+            padding: var(--spacing-md);
             background: var(--bg-secondary);
             border-top: 1px solid var(--accent-secondary);
-            position: relative;
-            z-index: 10;
+            position: sticky;
+            bottom: 0;
+            width: 100%;
             padding-bottom: calc(var(--spacing-md) + var(--safe-area-inset-bottom));
         }
 
-        .chat-input form {
+        .chat-input {
             display: flex;
-            gap: var(--spacing-md);
+            gap: var(--spacing-sm);
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        .chat-input input {
+        .message-input {
             flex: 1;
-            padding: var(--spacing-md) var(--spacing-lg);
+            padding: var(--spacing-sm) var(--spacing-lg);
             background: var(--bg-primary);
-            border: 2px solid var(--accent-secondary);
+            border: 1px solid var(--accent-secondary);
             border-radius: var(--border-radius);
             color: var(--text-primary);
             font-size: 1rem;
-            transition: all 0.2s;
-            resize: none;
-            line-height: 1.5;
             min-height: 45px;
             max-height: 120px;
+            resize: none;
+            width: 100%;
         }
 
-        .chat-input input:focus {
-            outline: none;
-            border-color: var(--accent-primary);
-        }
-
-        .chat-input button {
-            padding: var(--spacing-md) var(--spacing-lg);
+        .send-button {
             background: var(--accent-primary);
             color: var(--text-primary);
             border: none;
             border-radius: var(--border-radius);
+            padding: 0 var(--spacing-lg);
+            height: 45px;
             cursor: pointer;
-            transition: all 0.2s;
             font-weight: 600;
-            font-size: 1rem;
             min-width: 80px;
+            white-space: nowrap;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: var(--spacing-xs);
         }
 
-        .chat-input button:hover {
-            background: var(--accent-hover);
-            transform: translateY(-1px);
-        }
-
-        .chat-input button:active {
-            transform: translateY(0);
+        @media (max-width: 640px) {
+            .chat-input-container {
+                padding: var(--spacing-sm);
+            }
+            
+            .message-input {
+                padding: var(--spacing-sm);
+            }
+            
+            .send-button {
+                padding: 0 var(--spacing-md);
+                min-width: 60px;
+            }
         }
 
         .notification {
             position: fixed;
-            bottom: calc(var(--footer-height) + var(--spacing-lg) + var(--safe-area-inset-bottom));
+            bottom: calc(var(--footer-height) + var(--spacing-lg));
             left: 50%;
             transform: translateX(-50%);
             padding: var(--spacing-md) var(--spacing-lg);
             border-radius: var(--border-radius);
             color: var(--text-primary);
             display: none;
-            animation: slideUp 0.3s ease-out;
             z-index: 1000;
             max-width: calc(100% - 2rem);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
         @keyframes slideUp {
@@ -599,17 +508,13 @@
         const BASE_URL = window.location.hostname === 'localhost' 
             ? 'ws://localhost:10000'
             : 'wss://chat-8ynk.onrender.com';
-
+    
         let ws = null;
         let reconnectAttempts = 0;
         let isTyping = false;
         let typingTimeout = null;
-
-        const fileUpload = document.getElementById('fileUpload');
-        const uploadButton = document.getElementById('uploadButton');
         let activeReplyTo = null;
-
-        
+    
         const messages = document.getElementById('messages');
         const messageForm = document.getElementById('messageForm');
         const messageInput = document.getElementById('messageInput');
@@ -617,165 +522,102 @@
         const userCountElement = document.getElementById('userCount');
         const notificationElement = document.getElementById('notification');
         const typingIndicator = document.getElementById('typingIndicator');
-
+        const fileUpload = document.getElementById('fileUpload');
+        const uploadButton = document.getElementById('uploadButton');
+        const sendButton = document.getElementById('sendButton');
+    
+        // Get URL parameters and stored data
         const urlParams = new URLSearchParams(window.location.search);
         const roomCode = urlParams.get('room');
         const userName = localStorage.getItem('chatName');
-
+    
+        // Redirect if missing required parameters
         if (!roomCode || !userName) {
             window.location.href = '/';
+            throw new Error('Missing required parameters');
         }
-
+    
         roomCodeElement.textContent = roomCode;
-
-        roomCodeElement.addEventListener('click', async () => {
-            try {
-                await navigator.clipboard.writeText(roomCode);
-                showNotification('Room code copied to clipboard', 'success');
-            } catch (err) {
-                showNotification('Failed to copy room code', 'error');
-            }
-        });
-
-        function formatTimestamp(timestamp) {
-            const date = new Date(timestamp);
-            const now = new Date();
-            const diffMs = now - date;
-            const diffMins = Math.floor(diffMs / 60000);
-            const diffHours = Math.floor(diffMins / 60);
-            const diffDays = Math.floor(diffHours / 24);
-
-            if (diffMins < 1) return 'Just now';
-            if (diffMins < 60) return `${diffMins}m ago`;
-            if (diffHours < 24) return `${diffHours}h ago`;
-            if (diffDays < 7) return `${diffDays}d ago`;
-
-            return date.toLocaleString();
-        }
-
-        function showNotification(message, type = 'success') {
-            notificationElement.textContent = message;
-            notificationElement.style.display = 'block';
-            notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
-            
-            setTimeout(() => {
-                notificationElement.style.display = 'none';
-            }, 3000);
-        }
-
+    
+        // Core WebSocket Functions
         function connectWebSocket() {
             ws = new WebSocket(`${BASE_URL}/ws/${roomCode}`);
-
+    
             ws.onopen = () => {
                 reconnectAttempts = 0;
                 showNotification('Connected to chat room', 'success');
             };
-
+    
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                if (data.type === 'typing') {
-                    handleTypingIndicator(data);
-                } else if (data.type === 'user_count') {
-                    userCountElement.textContent = data.count;
-                } else {
-                    addMessage(data);
-                }
+                handleWebSocketMessage(data);
             };
-
+    
             ws.onclose = () => {
-                if (reconnectAttempts < 5) {
-                    showNotification('Reconnecting...', 'error');
-                    setTimeout(() => {
-                        reconnectAttempts++;
-                        connectWebSocket();
-                    }, 1000 * Math.min(reconnectAttempts + 1, 5));
-                } else {
-                    showNotification('Connection lost. Please refresh the page.', 'error');
-                }
+                handleWebSocketClose();
             };
-
+    
             ws.onerror = () => {
                 showNotification('Connection error', 'error');
             };
         }
-
-        function handleTypingIndicator(data) {
-            if (data.sender !== userName) {
-                typingIndicator.textContent = `${data.sender} is typing...`;
-                typingIndicator.style.display = 'block';
-                
-                setTimeout(() => {
-                    typingIndicator.style.display = 'none';
-                }, 2000);
+    
+        function handleWebSocketMessage(data) {
+            switch (data.type) {
+                case 'typing':
+                    handleTypingIndicator(data);
+                    break;
+                case 'user_count':
+                    userCountElement.textContent = data.count;
+                    break;
+                case 'reaction':
+                    handleReaction(data);
+                    break;
+                case 'reply':
+                    handleReply(data);
+                    break;
+                default:
+                    addMessage(data);
             }
         }
-
+    
+        function handleWebSocketClose() {
+            if (reconnectAttempts < 5) {
+                showNotification('Reconnecting...', 'error');
+                setTimeout(() => {
+                    reconnectAttempts++;
+                    connectWebSocket();
+                }, 1000 * Math.min(reconnectAttempts + 1, 5));
+            } else {
+                showNotification('Connection lost. Please refresh the page.', 'error');
+            }
+        }
+    
+        // Message Handling Functions
         function addMessage(data) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
             messageDiv.setAttribute('data-message-id', data.id);
-            
+    
             const initials = data.sender
                 .split(' ')
                 .map(word => word[0])
                 .join('')
                 .toUpperCase()
                 .slice(0, 2);
-            
+    
             const colors = [
-                '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', 
+                '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6',
                 '#6366F1', '#8B5CF6', '#D946EF'
             ];
-            const colorIndex = Array.from(data.sender).reduce((acc, char) => 
+            const colorIndex = Array.from(data.sender).reduce((acc, char) =>
                 acc + char.charCodeAt(0), 0) % colors.length;
-
-            // Handle media content
-            let mediaContent = '';
-            if (data.media_url) {
-                if (data.media_type?.startsWith('image/')) {
-                    mediaContent = `
-                        <div class="media-preview">
-                            <img src="${data.media_url}" alt="Uploaded image">
-                        </div>
-                    `;
-                } else if (data.media_type?.startsWith('video/')) {
-                    mediaContent = `
-                        <div class="media-preview">
-                            <video src="${data.media_url}" controls></video>
-                        </div>
-                    `;
-                }
-            }
-
-            // Handle reactions
-            let reactionsHTML = '';
-            if (data.reactions && Object.keys(data.reactions).length > 0) {
-                reactionsHTML = `
-                    <div class="reactions">
-                        ${Object.entries(data.reactions).map(([emoji, reaction]) => `
-                            <div class="reaction" data-emoji="${emoji}">
-                                ${emoji} ${reaction.count}
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-
-            // Handle replies
-            let repliesHTML = '';
-            if (data.replies && data.replies.length > 0) {
-                repliesHTML = `
-                    <div class="replies">
-                        ${data.replies.map(reply => `
-                            <div class="reply">
-                                <strong>${reply.sender}:</strong> ${escapeHTML(reply.content)}
-                                <span class="timestamp">${formatTimestamp(reply.timestamp)}</span>
-                            </div>
-                        `).join('')}
-                    </div>
-                `;
-            }
-
+    
+            // Handle media content if present
+            const mediaContent = generateMediaContent(data);
+            const reactionsHTML = generateReactionsHTML(data.reactions);
+            const repliesHTML = generateRepliesHTML(data.replies);
+    
             messageDiv.innerHTML = `
                 <div class="avatar" style="background-color: ${colors[colorIndex]}">
                     <div class="avatar-placeholder">${initials}</div>
@@ -799,230 +641,247 @@
                     </form>
                 </div>
             `;
-
-            // Add event listeners
-            const reactButton = messageDiv.querySelector('.react-button');
-            const replyButton = messageDiv.querySelector('.reply-button');
-            const replyForm = messageDiv.querySelector('.reply-form');
-
-            reactButton.addEventListener('click', () => {
-                const emoji = prompt('Enter an emoji:');
-                if (emoji) {
-                    sendReaction(data.id, emoji);
-                }
-            });
-
-            replyButton.addEventListener('click', () => {
-                // Hide any other active reply forms
-                document.querySelectorAll('.reply-form').forEach(form => {
-                    form.style.display = 'none';
-                });
-                replyForm.style.display = 'block';
-                replyForm.querySelector('.reply-input').focus();
-            });
-
-            replyForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const replyInput = replyForm.querySelector('.reply-input');
-                const replyContent = replyInput.value.trim();
-                if (replyContent) {
-                    try {
-                        await sendReply(data.id, replyContent);
-                        replyInput.value = '';
-                        replyForm.style.display = 'none';
-                        showNotification('Reply sent', 'success');
-                    } catch (error) {
-                        showNotification('Failed to send reply', 'error');
-                    }
-                }
-            });
-            
+    
+            attachMessageEventListeners(messageDiv, data.id);
             messages.appendChild(messageDiv);
             scrollToBottom();
         }
-
+    
+        // Helper Functions for Message Content
+        function generateMediaContent(data) {
+            if (!data.media_url) return '';
+    
+            if (data.media_type?.startsWith('image/')) {
+                return `
+                    <div class="media-preview">
+                        <img src="${data.media_url}" alt="Uploaded image">
+                    </div>
+                `;
+            }
+    
+            if (data.media_type?.startsWith('video/')) {
+                return `
+                    <div class="media-preview">
+                        <video src="${data.media_url}" controls></video>
+                    </div>
+                `;
+            }
+    
+            return '';
+        }
+    
+        function generateReactionsHTML(reactions) {
+            if (!reactions || Object.keys(reactions).length === 0) return '';
+    
+            return `
+                <div class="reactions">
+                    ${Object.entries(reactions).map(([emoji, reaction]) => `
+                        <div class="reaction" data-emoji="${emoji}">
+                            ${emoji} ${reaction.count}
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    
+        function generateRepliesHTML(replies) {
+            if (!replies || replies.length === 0) return '';
+    
+            return `
+                <div class="replies">
+                    ${replies.map(reply => `
+                        <div class="reply">
+                            <strong>${reply.sender}:</strong> ${escapeHTML(reply.content)}
+                            <span class="timestamp">${formatTimestamp(reply.timestamp)}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+    
+        // Event Listeners for Message Elements
+        function attachMessageEventListeners(messageDiv, messageId) {
+            const reactButton = messageDiv.querySelector('.react-button');
+            const replyButton = messageDiv.querySelector('.reply-button');
+            const replyForm = messageDiv.querySelector('.reply-form');
+    
+            reactButton.addEventListener('click', () => handleReactionClick(messageId));
+            replyButton.addEventListener('click', () => handleReplyButtonClick(replyForm));
+            replyForm.addEventListener('submit', (e) => handleReplySubmit(e, messageId, replyForm));
+        }
+    
+        // Message Action Handlers
+        async function handleReactionClick(messageId) {
+            const emoji = prompt('Enter an emoji:');
+            if (emoji) {
+                try {
+                    await sendReaction(messageId, emoji);
+                    showNotification('Reaction sent', 'success');
+                } catch (error) {
+                    showNotification('Failed to send reaction', 'error');
+                }
+            }
+        }
+    
+        function handleReplyButtonClick(replyForm) {
+            document.querySelectorAll('.reply-form').forEach(form => {
+                form.style.display = 'none';
+            });
+            replyForm.style.display = 'block';
+            replyForm.querySelector('.reply-input').focus();
+        }
+    
+        async function handleReplySubmit(e, messageId, replyForm) {
+            e.preventDefault();
+            const replyInput = replyForm.querySelector('.reply-input');
+            const replyContent = replyInput.value.trim();
+            
+            if (replyContent) {
+                try {
+                    await sendReply(messageId, replyContent);
+                    replyInput.value = '';
+                    replyForm.style.display = 'none';
+                    showNotification('Reply sent', 'success');
+                } catch (error) {
+                    showNotification('Failed to send reply', 'error');
+                }
+            }
+        }
+    
+        // API Interaction Functions
+        async function sendReaction(messageId, emoji) {
+            const apiUrl = getApiBaseUrl();
+            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/messages/${messageId}/react`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    emoji,
+                    user_id: userName
+                })
+            });
+    
+            if (!response.ok) throw new Error('Failed to send reaction');
+        }
+    
+        async function sendReply(messageId, content) {
+            const apiUrl = getApiBaseUrl();
+            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/messages/${messageId}/reply`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content,
+                    sender: userName
+                })
+            });
+    
+            if (!response.ok) throw new Error('Failed to send reply');
+        }
+    
+        async function uploadFile(file) {
+            const apiUrl = getApiBaseUrl();
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('sender', userName);
+    
+            const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+    
+            if (!response.ok) throw new Error('Failed to upload file');
+            return response.json();
+        }
+    
+        // Utility Functions
+        function getApiBaseUrl() {
+            return window.location.hostname === 'localhost'
+                ? 'http://localhost:10000'
+                : 'https://chat-8ynk.onrender.com';
+        }
+    
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+    
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+    
+            return date.toLocaleString();
+        }
+    
         function escapeHTML(text) {
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
         }
-
+    
         function scrollToBottom() {
-            const lastMessage = messages.lastElementChild;
-            if (lastMessage) {
-                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
-            }
+            messages.scrollTop = messages.scrollHeight;
         }
-
-        function sendTypingIndicator() {
-            if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
-                isTyping = true;
-                ws.send(JSON.stringify({
-                    type: 'typing',
-                    sender: userName
-                }));
-
-                clearTimeout(typingTimeout);
-                typingTimeout = setTimeout(() => {
-                    isTyping = false;
-                }, 2000);
-            }
+    
+        function showNotification(message, type = 'success') {
+            notificationElement.textContent = message;
+            notificationElement.style.display = 'block';
+            notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
+    
+            setTimeout(() => {
+                notificationElement.style.display = 'none';
+            }, 3000);
         }
-
-        async function sendReaction(messageId, emoji) {
-            try {
-                const apiUrl = window.location.hostname === 'localhost' 
-                    ? 'http://localhost:10000'
-                    : 'https://chat-8ynk.onrender.com';
-                
-                const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/messages/${messageId}/react`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        emoji,
-                        user_id: userName
-                    })
-                });
-
-                if (!response.ok) throw new Error('Failed to send reaction');
-            } catch (error) {
-                showNotification('Failed to send reaction', 'error');
-            }
-        }
-
-        async function sendReply(messageId, content) {
-            try {
-                const apiUrl = window.location.hostname === 'localhost' 
-                    ? 'http://localhost:10000'
-                    : 'https://chat-8ynk.onrender.com';
-                
-                const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/messages/${messageId}/reply`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        content,
-                        sender: userName
-                    })
-                });
-
-                if (!response.ok) throw new Error('Failed to send reply');
-            } catch (error) {
-                showNotification('Failed to send reply', 'error');
-            }
-        }
-
-        async function uploadFile(file) {
-            try {
-                const apiUrl = window.location.hostname === 'localhost' 
-                    ? 'http://localhost:10000'
-                    : 'https://chat-8ynk.onrender.com';
-
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('sender', userName);
-
-                const response = await fetch(`${apiUrl}/api/rooms/${roomCode}/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) throw new Error('Failed to upload file');
-                
-                const result = await response.json();
-                return result;
-            } catch (error) {
-                showNotification('Failed to upload file', 'error');
-                return null;
-            }
-        }
-
-        uploadButton.addEventListener('click', () => {
-            fileUpload.click();
+    
+        // Event Listeners
+        messageInput.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            sendTypingIndicator();
         });
-
-        fileUpload.addEventListener('change', async (e) => {
+    
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendMessage();
+            return false;
+        });
+    
+        sendButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            sendMessage();
+        });
+    
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+    
+        uploadButton?.addEventListener('click', () => {
+            fileUpload?.click();
+        });
+    
+        fileUpload?.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
+    
             if (file.size > 32 * 1024 * 1024) {
                 showNotification('File size must be less than 32MB', 'error');
                 return;
             }
-
-            const upload = await uploadFile(file);
-            if (upload) {
-                ws.send(JSON.stringify({
-                    type: 'message',
-                    content: 'Shared a file',
-                    sender: userName,
-                    timestamp: Date.now(),
-                    media_url: upload.url,
-                    media_type: file.type
-                }));
-            }
-
-            fileUpload.value = '';
-        });
-
-        // Update WebSocket message handler
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'typing') {
-                handleTypingIndicator(data);
-            } else if (data.type === 'user_count') {
-                userCountElement.textContent = data.count;
-            } else if (data.type === 'reaction') {
-                handleReaction(data);
-            } else if (data.type === 'reply') {
-                handleReply(data);
-            } else {
-                addMessage(data);
-            }
-        };
-
-        function handleReaction(data) {
-            const message = document.querySelector(`[data-message-id="${data.message_id}"]`);
-            if (message) {
-                // Update reactions display
-                // You might want to reload the entire message or just update the reactions section
-                loadRoomDetails();
-            }
-        }
-
-        function handleReply(data) {
-            const message = document.querySelector(`[data-message-id="${data.message_id}"]`);
-            if (message) {
-                // Update replies display
-                // You might want to reload the entire message or just update the replies section
-                loadRoomDetails();
-            }
-        }
-
-        
-
-        // File upload handling
-        uploadButton.addEventListener('click', () => {
-            fileUpload.click();
-        });
-
-        fileUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            if (file.size > 32 * 1024 * 1024) {
-                showNotification('File size must be less than 32MB', 'error');
-                return;
-            }
-
+    
             try {
                 showNotification('Uploading file...', 'success');
                 const upload = await uploadFile(file);
                 if (upload) {
-                    await ws.send(JSON.stringify({
+                    ws.send(JSON.stringify({
                         type: 'message',
                         content: 'Shared a file',
                         sender: userName,
@@ -1035,34 +894,61 @@
             } catch (error) {
                 showNotification('Failed to upload file', 'error');
             }
-
+    
             fileUpload.value = '';
         });
-
-
-        messageInput.addEventListener('input', (e) => {
-            e.target.style.height = 'auto';
-            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-            
-            sendTypingIndicator();
-        });
-
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                messageForm.dispatchEvent(new Event('submit'));
-            }
-        });
-
+    
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                if (!ws || ws.readyState === WebSocket.CLOSED) {
-                    reconnectAttempts = 0;
-                    connectWebSocket();
-                }
+            if (document.visibilityState === 'visible' && (!ws || ws.readyState === WebSocket.CLOSED)) {
+                reconnectAttempts = 0;
+                connectWebSocket();
             }
         });
-
+    
+        // Message Sending Function
+        function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+    
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: message,
+                sender: userName,
+                timestamp: Date.now()
+            }));
+    
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+        }
+    
+        // Typing Indicator Functions
+        function sendTypingIndicator() {
+            if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
+                isTyping = true;
+                ws.send(JSON.stringify({
+                    type: 'typing',
+                    sender: userName
+                }));
+    
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                }, 2000);
+            }
+        }
+    
+        function handleTypingIndicator(data) {
+            if (data.sender !== userName) {
+                typingIndicator.textContent = `${data.sender} is typing...`;
+                typingIndicator.style.display = 'block';
+    
+                setTimeout(() => {
+                    typingIndicator.style.display = 'none';
+                }, 2000);
+            }
+        }
+    
+        // Mobile Viewport Handling
         let viewheight = window.innerHeight;
         window.addEventListener('resize', () => {
             if (window.innerHeight < viewheight) {
@@ -1070,37 +956,9 @@
             }
             viewheight = window.innerHeight;
         });
-
-        messageForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            
-            const message = messageInput.value.trim();
-            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
-            
-            ws.send(JSON.stringify({
-                type: 'message',
-                content: message,
-                sender: userName,
-                timestamp: Date.now()
-            }));
-            
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
-            return false; // Prevent form submission
-        });
-
-        messageInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const submitEvent = new Event('submit', {
-                    cancelable: true,
-                    bubbles: true
-                });
-                messageForm.dispatchEvent(submitEvent);
-                return false;
-            }
-        });
-
+    
+        // Initialize
+        connectWebSocket();
 
         async function loadRoomDetails() {
             try {
