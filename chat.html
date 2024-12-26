@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat Room</title>
     <style>
@@ -280,24 +279,98 @@
             padding: 2px;
         }
 
-        .message-box {
+        .message-box-action {
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-secondary);
+            padding: var(--spacing-md);
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-width: 40px;
+            min-height: 40px;
+            font-size: 1.1rem;
         }
 
-        .message-box-attachments {
-            padding: var(--spacing-sm);
+        .message-box-action:hover {
+            background: var(--accent-primary);
+            color: var(--text-primary);
+        }
+
+        .message-box-action:active {
+            transform: scale(0.95);
+        }
+
+        .message-box-action i {
+            font-size: 1.25rem;
+        }
+
+        .message-action-btn {
+            background: var(--bg-tertiary);
+            border: none;
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: var(--border-radius-md);
+            cursor: pointer;
+            transition: all 0.2s ease;
             display: flex;
-            flex-wrap: wrap;
-            gap: var(--spacing-sm);
+            align-items: center;
+            gap: 6px;
+            font-size: 0.9375rem;
+            min-width: 36px;
+            min-height: 36px;
+            justify-content: center;
+        }
+
+        .message-action-btn:hover {
+            background: var(--accent-primary);
+            color: var(--text-primary);
+            transform: translateY(-1px);
+        }
+
+        .message-action-btn:active {
+            transform: translateY(0px) scale(0.98);
         }
 
         .message-box-actions {
             display: flex;
             align-items: center;
-            gap: var(--spacing-sm);
-            padding: var(--spacing-xs) var(--spacing-sm);
+            gap: var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-md);
         }
+        /* Mobile Optimization */
+        @media (max-width: 768px) {
+            .message-box-action {
+                min-width: 36px;
+                min-height: 36px;
+                padding: var(--spacing-sm);
+            }
+
+            .message-actions {
+                opacity: 1;
+                margin-top: var(--spacing-md);
+            }
+
+            .message-action-btn {
+                padding: 6px 10px;
+            }
+        }
+
+        .message-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-sm);
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .message:hover .message-actions {
+            opacity: 1;
+        }
+
 
         .message-input-wrapper {
             display: flex;
@@ -713,6 +786,26 @@
                 </div>
             </div>
         </div>
+
+        <div class="message-box-actions">
+            <button class="message-box-action" onclick="triggerFileUpload()" title="Add Media">
+                <i class="fas fa-image"></i>
+            </button>
+            <button class="message-box-action" onclick="toggleEmojiPicker()" title="Add Emoji">
+                <i class="fas fa-smile"></i>
+            </button>
+            <input type="file" id="fileInput" accept="image/*,video/*" style="display: none" multiple onchange="handleFileSelect(event)">
+        </div>
+        
+        <!-- Updated Message Actions HTML (inside message template) -->
+        <div class="message-actions">
+            <button class="message-action-btn" onclick="toggleEmojiPicker('${data.id}')" title="React">
+                <i class="fas fa-smile"></i>
+            </button>
+            <button class="message-action-btn" onclick="replyToMessage('${data.id}', '${escapeHTML(data.content)}')" title="Reply">
+                <i class="fas fa-reply"></i>
+            </button>
+        </div>
     <div id="notification" class="notification"></div>
 
     <script>
@@ -1069,6 +1162,48 @@
             messages.appendChild(messageDiv);
             scrollToBottom();
         }
+
+        function toggleEmojiPicker(messageId) {
+            const emojiPicker = document.getElementById('emojiPicker');
+            emojiPicker.dataset.messageId = messageId || '';
+            emojiPicker.classList.toggle('active');
+            
+            if (emojiPicker.classList.contains('active')) {
+                const button = event.currentTarget;
+                const rect = button.getBoundingClientRect();
+                emojiPicker.style.position = 'absolute';
+                emojiPicker.style.bottom = `${window.innerHeight - rect.top + 10}px`;
+                emojiPicker.style.left = `${rect.left}px`;
+            }
+        }
+
+        function addEmoji(emoji) {
+            const emojiPicker = document.getElementById('emojiPicker');
+            const messageId = emojiPicker.dataset.messageId;
+            
+            if (messageId) {
+                // Add reaction to message
+                addReaction(messageId, emoji);
+            } else {
+                // Add emoji to input
+                const messageInput = document.getElementById('messageInput');
+                messageInput.value += emoji;
+                messageInput.focus();
+            }
+            
+            emojiPicker.classList.remove('active');
+        }
+
+        // Close emoji picker when clicking outside
+        document.addEventListener('click', (event) => {
+            const emojiPicker = document.getElementById('emojiPicker');
+            const isEmojiButton = event.target.closest('.message-box-action, .message-action-btn');
+            const isEmojiPicker = event.target.closest('.emoji-picker');
+            
+            if (!isEmojiButton && !isEmojiPicker && emojiPicker.classList.contains('active')) {
+                emojiPicker.classList.remove('active');
+            }
+        });
 
         function escapeHTML(text) {
             const div = document.createElement('div');
