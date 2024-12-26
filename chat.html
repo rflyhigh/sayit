@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat Room</title>
     <style>
         :root {
@@ -14,148 +14,354 @@
             --text-muted: #71717a;
             --accent-primary: #7C3AED;
             --accent-hover: #6D28D9;
+            --accent-secondary: #4b5563;
+            --link-color: #60a5fa;
             --error: #ef4444;
             --success: #10B981;
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 0.75rem;
+            --spacing-lg: 1rem;
             --border-radius: 8px;
+            --header-height: 60px;
+            --footer-height: 70px;
+            --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background-color: var(--bg-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             color: var(--text-primary);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            height: 100vh;
+            height: -webkit-fill-available;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        html {
+            height: -webkit-fill-available;
         }
 
         .chat-container {
-            flex: 1;
             display: flex;
             flex-direction: column;
+            height: 100vh;
+            height: -webkit-fill-available;
             max-width: 1200px;
             margin: 0 auto;
-            padding: 1rem;
-            width: 100%;
-            height: 100vh;
+            position: relative;
         }
 
         .chat-header {
-            padding: 1rem;
+            height: var(--header-height);
+            padding: 0 var(--spacing-lg);
             background: var(--bg-secondary);
-            border-radius: var(--border-radius) var(--border-radius) 0 0;
+            border-bottom: 1px solid var(--accent-secondary);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            z-index: 10;
         }
 
         .room-info {
             display: flex;
-            gap: 1rem;
+            gap: var(--spacing-md);
             align-items: center;
+        }
+
+        .room-info h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
         }
 
         .room-code {
             background: var(--bg-primary);
-            padding: 0.25rem 0.5rem;
+            padding: var(--spacing-xs) var(--spacing-sm);
             border-radius: var(--border-radius);
-            font-family: monospace;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: all;
+        }
+
+        .room-code:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .user-count {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .user-count-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--success);
+            border-radius: 50%;
+            display: inline-block;
         }
 
         .chat-messages {
             flex: 1;
             overflow-y: auto;
-            padding: 1rem;
-            background: var(--bg-secondary);
+            overflow-x: hidden;
+            padding: var(--spacing-lg);
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: var(--spacing-sm);
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: calc(var(--spacing-lg) + var(--safe-area-inset-bottom));
         }
 
         .message {
-            padding: 0.75rem;
+            display: flex;
+            gap: var(--spacing-md);
+            padding: var(--spacing-sm);
             border-radius: var(--border-radius);
-            background: var(--bg-primary);
-            max-width: 80%;
+            transition: background-color 0.2s ease;
+            animation: messageSlide 0.3s ease-out;
+            max-width: 100%;
         }
 
-        .message.system {
-            background: var(--bg-hover);
-            text-align: center;
-            font-style: italic;
-            color: var(--text-secondary);
-            margin: 0.5rem auto;
+        @keyframes messageSlide {
+            from { 
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message:hover {
+            background-color: var(--bg-hover);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            overflow: hidden;
+            background-color: var(--accent-primary);
+            flex-shrink: 0;
+            opacity: 0.9;
+        }
+
+        .avatar-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.125rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-content {
+            flex: 1;
+            min-width: 0;
+            padding-right: var(--spacing-sm);
         }
 
         .message-header {
             display: flex;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
+            align-items: baseline;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
         }
 
-        .message-content {
+        .author {
+            color: var(--accent-primary);
+            font-weight: 600;
+            font-size: 0.9375rem;
+        }
+
+        .timestamp {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .text {
             color: var(--text-primary);
+            white-space: pre-wrap;
             word-break: break-word;
-            line-height: 1.4;
+            font-size: 0.9375rem;
+            line-height: 1.5;
         }
 
         .chat-input {
-            padding: 1rem;
+            padding: var(--spacing-md) var(--spacing-lg);
             background: var(--bg-secondary);
-            border-radius: 0 0 var(--border-radius) var(--border-radius);
+            border-top: 1px solid var(--accent-secondary);
+            position: relative;
+            z-index: 10;
+            padding-bottom: calc(var(--spacing-md) + var(--safe-area-inset-bottom));
         }
 
         .chat-input form {
             display: flex;
-            gap: 1rem;
+            gap: var(--spacing-md);
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .chat-input input {
             flex: 1;
-            padding: 0.75rem;
+            padding: var(--spacing-md) var(--spacing-lg);
             background: var(--bg-primary);
-            border: 1px solid var(--text-muted);
+            border: 2px solid var(--accent-secondary);
             border-radius: var(--border-radius);
             color: var(--text-primary);
             font-size: 1rem;
+            transition: all 0.2s;
+            resize: none;
+            line-height: 1.5;
+            min-height: 45px;
+            max-height: 120px;
+        }
+
+        .chat-input input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
         }
 
         .chat-input button {
-            padding: 0.75rem 1.5rem;
+            padding: var(--spacing-md) var(--spacing-lg);
             background: var(--accent-primary);
             color: var(--text-primary);
             border: none;
             border-radius: var(--border-radius);
             cursor: pointer;
-            transition: background 0.2s;
+            transition: all 0.2s;
+            font-weight: 600;
+            font-size: 1rem;
+            min-width: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
         }
 
         .chat-input button:hover {
             background: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .chat-input button:active {
+            transform: translateY(0);
         }
 
         .notification {
             position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            padding: 1rem 1.5rem;
+            bottom: calc(var(--footer-height) + var(--spacing-lg) + var(--safe-area-inset-bottom));
+            left: 50%;
+            transform: translateX(-50%);
+            padding: var(--spacing-md) var(--spacing-lg);
             border-radius: var(--border-radius);
             color: var(--text-primary);
             display: none;
-            animation: slideIn 0.3s ease-out;
+            animation: slideUp 0.3s ease-out;
             z-index: 1000;
+            max-width: calc(100% - 2rem);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
 
-        @keyframes slideIn {
-            from { transform: translateX(100%); }
-            to { transform: translateX(0); }
+        @keyframes slideUp {
+            from { 
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+            to { 
+                opacity: 1;
+                transform: translate(-50%, 0);
+            }
+        }
+
+        .typing-indicator {
+            display: none;
+            padding: var(--spacing-sm);
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-style: italic;
+        }
+
+        @media (max-width: 640px) {
+            .chat-header {
+                padding: 0 var(--spacing-md);
+            }
+
+            .chat-messages {
+                padding: var(--spacing-md);
+            }
+
+            .chat-input {
+                padding: var(--spacing-sm);
+            }
+
+            .chat-input input {
+                padding: var(--spacing-sm);
+                font-size: 1rem;
+            }
+
+            .chat-input button {
+                padding: var(--spacing-sm);
+                min-width: 60px;
+            }
+
+            .avatar {
+                width: 32px;
+                height: 32px;
+            }
+
+            .room-info h2 {
+                font-size: 1.125rem;
+            }
+
+            .message {
+                padding: var(--spacing-xs) var(--spacing-sm);
+            }
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: var(--bg-primary);
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--accent-secondary);
+            border-radius: 3px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        @media (display-mode: standalone) {
+            body {
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
         }
     </style>
 </head>
@@ -164,181 +370,283 @@
         <div class="chat-header">
             <div class="room-info">
                 <h2>Chat Room</h2>
-                <div class="room-code" id="roomCode"></div>
+                <div class="room-code" id="roomCode" title="Click to copy"></div>
             </div>
-            <div class="user-count">Online: <span id="userCount">1</span></div>
+            <div class="user-count">
+                <span class="user-count-dot"></span>
+                <span>Online: <span id="userCount">1</span></span>
+            </div>
         </div>
         
-        <div class="chat-messages" id="messages"></div>
+        <div class="chat-messages" id="messages">
+            <div class="typing-indicator" id="typingIndicator"></div>
+        </div>
         
         <div class="chat-input">
             <form id="messageForm">
-                <input type="text" id="messageInput" placeholder="Type your message..." autocomplete="off">
+                <input 
+                    type="text" 
+                    id="messageInput" 
+                    placeholder="Type your message..." 
+                    autocomplete="off"
+                    maxlength="500"
+                >
                 <button type="submit">Send</button>
-            </form></div>
+            </form>
         </div>
-    
-        <div id="notification" class="notification"></div>
-    
-        <script>
-            const BASE_URL = window.location.hostname === 'localhost' 
-                ? 'ws://localhost:10000'
-                : 'wss://chat-8ynk.onrender.com';
-    
-            let ws = null;
-            
-            const messages = document.getElementById('messages');
-            const messageForm = document.getElementById('messageForm');
-            const messageInput = document.getElementById('messageInput');
-            const roomCodeElement = document.getElementById('roomCode');
-            const userCountElement = document.getElementById('userCount');
-            const notificationElement = document.getElementById('notification');
-    
-            // Get room code from URL and localStorage
-            const urlParams = new URLSearchParams(window.location.search);
-            const roomCode = urlParams.get('room');
-            const userName = localStorage.getItem('chatName');
-    
-            if (!roomCode || !userName) {
-                window.location.href = '/';
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        const BASE_URL = window.location.hostname === 'localhost' 
+            ? 'ws://localhost:10000'
+            : 'wss://chat-8ynk.onrender.com';
+
+        let ws = null;
+        let reconnectAttempts = 0;
+        let isTyping = false;
+        let typingTimeout = null;
+        
+        const messages = document.getElementById('messages');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+        const roomCodeElement = document.getElementById('roomCode');
+        const userCountElement = document.getElementById('userCount');
+        const notificationElement = document.getElementById('notification');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomCode = urlParams.get('room');
+        const userName = localStorage.getItem('chatName');
+
+        if (!roomCode || !userName) {
+            window.location.href = '/';
+        }
+
+        roomCodeElement.textContent = roomCode;
+
+        roomCodeElement.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(roomCode);
+                showNotification('Room code copied to clipboard', 'success');
+            } catch (err) {
+                showNotification('Failed to copy room code', 'error');
             }
-    
-            roomCodeElement.textContent = roomCode;
-    
-            function showNotification(message, type = 'success') {
-                notificationElement.textContent = message;
-                notificationElement.style.display = 'block';
-                notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
+        });
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
+            return date.toLocaleString();
+        }
+
+        function showNotification(message, type = 'success') {
+            notificationElement.textContent = message;
+            notificationElement.style.display = 'block';
+            notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
+            
+            setTimeout(() => {
+                notificationElement.style.display = 'none';
+            }, 3000);
+        }
+
+        function connectWebSocket() {
+            ws = new WebSocket(`${BASE_URL}/ws/${roomCode}`);
+
+            ws.onopen = () => {
+                reconnectAttempts = 0;
+                showNotification('Connected to chat room', 'success');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'typing') {
+                    handleTypingIndicator(data);
+                } else if (data.type === 'user_count') {
+                    userCountElement.textContent = data.count;
+                } else {
+                    addMessage(data);
+                }
+            };
+
+            ws.onclose = () => {
+                if (reconnectAttempts < 5) {
+                    showNotification('Reconnecting...', 'error');
+                    setTimeout(() => {
+                        reconnectAttempts++;
+                        connectWebSocket();
+                    }, 1000 * Math.min(reconnectAttempts + 1, 5));
+                } else {
+                    showNotification('Connection lost. Please refresh the page.', 'error');
+                }
+            };
+
+            ws.onerror = () => {
+                showNotification('Connection error', 'error');
+            };
+        }
+
+        function handleTypingIndicator(data) {
+            if (data.sender !== userName) {
+                typingIndicator.textContent = `${data.sender} is typing...`;
+                typingIndicator.style.display = 'block';
                 
                 setTimeout(() => {
-                    notificationElement.style.display = 'none';
-                }, 3000);
+                    typingIndicator.style.display = 'none';
+                }, 2000);
             }
-    
-            function connectWebSocket() {
-                ws = new WebSocket(`${BASE_URL}/ws/${roomCode}`);
-    
-                ws.onopen = () => {
-                    addSystemMessage('Connected to chat room');
-                    showNotification('Connected to chat room', 'success');
-                };
-    
-                ws.onmessage = (event) => {
-                    const data = JSON.parse(event.data);
-                    addMessage(data);
-                };
-    
-                ws.onclose = () => {
-                    addSystemMessage('Disconnected from chat room');
-                    showNotification('Disconnected from chat room', 'error');
-                    // Attempt to reconnect after 1 second
-                    setTimeout(connectWebSocket, 1000);
-                };
-    
-                ws.onerror = () => {
-                    console.error('WebSocket error');
-                    addSystemMessage('Error connecting to chat room');
-                    showNotification('Connection error', 'error');
-                };
+        }
+
+        function addMessage(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const initials = data.sender
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+            
+            const colors = [
+                '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', 
+                '#6366F1', '#8B5CF6', '#D946EF'
+            ];
+            const colorIndex = Array.from(data.sender).reduce((acc, char) => 
+                acc + char.charCodeAt(0), 0) % colors.length;
+            
+            messageDiv.innerHTML = `
+                <div class="avatar" style="background-color: ${colors[colorIndex]}">
+                    <div class="avatar-placeholder">${initials}</div>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="author">${data.sender}</span>
+                        <span class="timestamp">${formatTimestamp(data.timestamp || Date.now())}</span>
+                    </div>
+                    <div class="text">${escapeHTML(data.content)}</div>
+                </div>
+            `;
+            
+            messages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function scrollToBottom() {
+            const lastMessage = messages.lastElementChild;
+            if (lastMessage) {
+                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
             }
-    
-            function addMessage(data) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message';
-                
-                const header = document.createElement('div');
-                header.className = 'message-header';
-                header.innerHTML = `
-                    <span>${data.sender}</span>
-                    <span>${new Date(data.timestamp || Date.now()).toLocaleTimeString()}</span>
-                `;
-                
-                const content = document.createElement('div');
-                content.className = 'message-content';
-                content.textContent = data.content;
-                
-                messageDiv.appendChild(header);
-                messageDiv.appendChild(content);
-                messages.appendChild(messageDiv);
-                
-                // Scroll to bottom
-                messages.scrollTop = messages.scrollHeight;
-            }
-    
-            function addSystemMessage(text) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'message system';
-                messageDiv.textContent = text;
-                messages.appendChild(messageDiv);
-                
-                // Scroll to bottom
-                messages.scrollTop = messages.scrollHeight;
-            }
-    
-            messageForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                
-                const message = messageInput.value.trim();
-                if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
-                
+        }
+
+        function sendTypingIndicator() {
+            if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
+                isTyping = true;
                 ws.send(JSON.stringify({
-                    content: message,
+                    type: 'typing',
                     sender: userName
                 }));
-                
-                messageInput.value = '';
-            });
-    
-            // Handle page unload
-            window.addEventListener('beforeunload', () => {
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    ws.close();
-                }
-            });
-    
-            // Handle Enter key
-            messageInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    messageForm.dispatchEvent(new Event('submit'));
-                }
-            });
-    
-            // Periodically check connection and reconnect if needed
-            setInterval(() => {
+
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                }, 2000);
+            }
+        }
+
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: message,
+                sender: userName,
+                timestamp: Date.now()
+            }));
+            
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+        });
+
+        messageInput.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            
+            sendTypingIndicator();
+        });
+
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                messageForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
                 if (!ws || ws.readyState === WebSocket.CLOSED) {
+                    reconnectAttempts = 0;
                     connectWebSocket();
                 }
-            }, 5000);
-    
-            // Initial connection
-            connectWebSocket();
-    
-            // Load room details
-            async function loadRoomDetails() {
-                try {
-                    const apiUrl = window.location.hostname === 'localhost' 
-                        ? 'http://localhost:10000'
-                        : 'https://chat-8ynk.onrender.com';
-                    
-                    const response = await fetch(`${apiUrl}/api/rooms/${roomCode}`);
-                    if (!response.ok) {
-                        throw new Error('Room not found');
-                    }
-                    
-                    const room = await response.json();
-                    
-                    // Load previous messages
-                    if (room.messages && room.messages.length > 0) {
-                        room.messages.forEach(message => addMessage(message));
-                    }
-                } catch (error) {
-                    showNotification('Failed to load room details', 'error');
-                }
             }
-    
-            // Load initial room details
-            loadRoomDetails();
-        </script>
-    </body>
-    </html>
+        });
+
+        let viewheight = window.innerHeight;
+        window.addEventListener('resize', () => {
+            if (window.innerHeight < viewheight) {
+                scrollToBottom();
+            }
+            viewheight = window.innerHeight;
+        });
+
+        async function loadRoomDetails() {
+            try {
+                const apiUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:10000'
+                    : 'https://chat-8ynk.onrender.com';
+                
+                const response = await fetch(`${apiUrl}/api/rooms/${roomCode}`);
+                if (!response.ok) throw new Error('Room not found');
+                
+                const room = await response.json();
+                if (room.messages?.length > 0) {
+                    room.messages.forEach(message => addMessage(message));
+                }
+            } catch (error) {
+                showNotification('Failed to load room details', 'error');
+            }
+        }
+
+        connectWebSocket();
+        loadRoomDetails();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(error => {
+                    console.error('ServiceWorker registration failed:', error);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
