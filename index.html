@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Chat</title>
+    <style>
+        :root {
+            --bg-primary: #18181b;
+            --bg-secondary: #27272a;
+            --bg-hover: #2d2d30;
+            --text-primary: #e4e4e7;
+            --text-secondary: #a1a1aa;
+            --text-muted: #71717a;
+            --accent-primary: #7C3AED;
+            --accent-hover: #6D28D9;
+            --error: #ef4444;
+            --success: #10B981;
+            --border-radius: 8px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 4rem 2rem;
+            background: linear-gradient(to bottom, rgba(124, 58, 237, 0.1), transparent);
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, var(--accent-primary), #9F7AEA);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            background: var(--accent-primary);
+            color: var(--text-primary);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .button:hover {
+            background: var(--accent-hover);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: var(--border-radius);
+            width: 90%;
+            max-width: 400px;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-secondary);
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-primary);
+            border: 1px solid var(--text-muted);
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1rem 1.5rem;
+            border-radius: var(--border-radius);
+            color: var(--text-primary);
+            display: none;
+            animation: slideIn 0.3s ease-out;
+            z-index: 2000;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="hero">
+            <h1>Secure Chat</h1>
+            <p>Create private chat rooms that automatically delete after 7 days.</p>
+            <div class="button-group">
+                <button class="button" onclick="showModal('createModal')">Create Room</button>
+                <button class="button" onclick="showModal('joinModal')">Join Room</button>
+            </div>
+        </section>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <h2>Create New Room</h2>
+            <div class="form-group">
+                <label for="createName">Display Name</label>
+                <input type="text" id="createName" placeholder="Enter your display name">
+            </div>
+            <button class="button" onclick="createRoom()">Create Room</button>
+        </div>
+    </div>
+
+    <!-- Join Room Modal -->
+    <div id="joinModal" class="modal">
+        <div class="modal-content">
+            <h2>Join Room</h2>
+            <div class="form-group">
+                <label for="joinCode">Room Code</label>
+                <input type="text" id="joinCode" placeholder="Enter room code">
+            </div>
+            <div class="form-group">
+                <label for="joinName">Display Name</label>
+                <input type="text" id="joinName" placeholder="Enter your display name">
+            </div>
+            <button class="button" onclick="joinRoom()">Join Room</button>
+        </div>
+    </div>
+
+    <div id="notification" class="notification"></div>
+
+    <script>
+        const BASE_URL = window.location.hostname === 'localhost' 
+            ? 'http://localhost:10000'
+            : 'https://chat-8ynk.onrender.com';
+        
+        const API_URL = `${BASE_URL}/api`;
+
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        function hideModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            notification.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, 3000);
+        }
+
+        function generateName() {
+            const adjectives = ['Swift', 'Brave', 'Clever', 'Noble', 'Wise'];
+            const nouns = ['Phoenix', 'Dragon', 'Wolf', 'Eagle', 'Lion'];
+            return `${adjectives[Math.floor(Math.random() * adjectives.length)]}${nouns[Math.floor(Math.random() * nouns.length)]}`;
+        }
+
+        async function createRoom() {
+            const name = document.getElementById('createName').value.trim() || generateName();
+            
+            try {
+                const response = await fetch(`${API_URL}/rooms/create`, {
+                    method: 'POST',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to create room');
+                }
+
+                const data = await response.json();
+                
+                localStorage.setItem('chatName', name);
+                localStorage.setItem('roomCode', data.code);
+                
+                showNotification('Room created successfully!');
+                setTimeout(() => {
+                    window.location.href = `/chat.html?room=${data.code}`;
+                }, 1000);
+            } catch (error) {
+                showNotification('Failed to create room. Please try again.', 'error');
+            }
+        }
+
+        async function joinRoom() {
+            const code = document.getElementById('joinCode').value.trim().toUpperCase();
+            const name = document.getElementById('joinName').value.trim() || generateName();
+            
+            if (!code) {
+                showNotification('Please enter a room code', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/rooms/${code}`);
+                
+                if (!response.ok) {
+                    throw new Error('Room not found');
+                }
+
+                localStorage.setItem('chatName', name);
+                localStorage.setItem('roomCode', code);
+                
+                window.location.href = `/chat.html?room=${code}`;
+            } catch (error) {
+                showNotification('Failed to join room. Please check the room code and try again.', 'error');
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Handle Enter key in input fields
+        document.getElementById('createName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') createRoom();
+        });
+
+        document.getElementById('joinCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('joinName').focus();
+            }
+        });
+
+        document.getElementById('joinName').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') joinRoom();
+        });
+    </script>
+</body>
+</html>
