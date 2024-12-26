@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -477,7 +478,6 @@
         }
     </style>
 </head>
-
 <body>
     <div class="chat-container">
         <div class="chat-header">
@@ -525,477 +525,380 @@
     </div>
 
     <div id="notification" class="notification"></div>
+
     <script>
+        const BASE_URL = window.location.hostname === 'localhost' 
+            ? 'ws://localhost:10000'
+            : 'wss://chat-8ynk.onrender.com';
 
-    const BASE_URL = window.location.hostname === 'localhost' 
-        ? 'ws://localhost:10000'
-        : 'wss://chat-8ynk.onrender.com';
-
-    const API_URL = window.location.hostname === 'localhost' 
-        ? 'http://localhost:10000'
-        : 'https://chat-8ynk.onrender.com';
-
-    let ws = null;
-    let reconnectAttempts = 0;
-    let isTyping = false;
-    let typingTimeout = null;
-    let imageCache = new Map(); // Cache for decrypted images
-
-    const messages = document.getElementById('messages');
-    const messageForm = document.getElementById('messageForm');
-    const messageInput = document.getElementById('messageInput');
-    const roomCodeElement = document.getElementById('roomCode');
-    const userCountElement = document.getElementById('userCount');
-    const notificationElement = document.getElementById('notification');
-    const typingIndicator = document.getElementById('typingIndicator');
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const roomCode = urlParams.get('room');
-    const userName = localStorage.getItem('chatName');
-
-    const uploadButton = document.getElementById('uploadButton');
-    const fileInput = document.getElementById('fileInput');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const imageModal = document.getElementById('imageModal');
-    const modalImage = document.getElementById('modalImage');
-
-    async function decryptAndDisplayImage(imageUrl, encryptedKey) {
-        // Show loading state
-        loadingOverlay.style.display = 'flex';
+        let ws = null;
+        let reconnectAttempts = 0;
+        let isTyping = false;
+        let typingTimeout = null;
         
-        const cacheKey = `${imageUrl}-${encryptedKey}`;
-        
-        try {
-            // Check cache first
-            if (imageCache.has(cacheKey)) {
-                const cachedUrl = imageCache.get(cacheKey);
+        const messages = document.getElementById('messages');
+        const messageForm = document.getElementById('messageForm');
+        const messageInput = document.getElementById('messageInput');
+        const roomCodeElement = document.getElementById('roomCode');
+        const userCountElement = document.getElementById('userCount');
+        const notificationElement = document.getElementById('notification');
+        const typingIndicator = document.getElementById('typingIndicator');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomCode = urlParams.get('room');
+        const userName = localStorage.getItem('chatName');
+
+        const uploadButton = document.getElementById('uploadButton');
+        const fileInput = document.getElementById('fileInput');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const imageModal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+
+        uploadButton.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (file.size > 32 * 1024 * 1024) {
+                showNotification('Image size must be less than 32MB', 'error');
+                return;
+            }
+
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                showNotification('Invalid file type. Please upload an image.', 'error');
+                return;
+            }
+
+            loadingOverlay.style.display = 'flex';
+
+            try {
+                const apiUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:10000'
+                    : 'https://chat-8ynk.onrender.com';
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${apiUrl}/api/upload-image/${roomCode}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error || 'Upload failed');
+                }
+
+                // Send message with image
+                ws.send(JSON.stringify({
+                    type: 'message',
+                    content: '',
+                    image_url: result.image_url,
+                    sender: userName,
+                    timestamp: Date.now()
+                }));
+
+            } catch (error) {
+                showNotification('Failed to upload image', 'error');
+                console.error('Upload error:', error);
+            } finally {
                 loadingOverlay.style.display = 'none';
-                return cachedUrl;
+                fileInput.value = ''; // Reset file input
             }
+        });
 
-            // Attempt decryption
-            const response = await fetch(`${API_URL}/api/images/decrypt`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    image_url: imageUrl,
-                    encrypted_key: encryptedKey
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`Decryption failed: ${response.status}`);
-            }
 
-            const data = await response.json();
-            
-            if (!data.success || !data.image_data) {
-                throw new Error(data.error || 'Failed to decrypt image');
-            }
-
-            const decryptedImageUrl = `data:image/jpeg;base64,${data.image_data}`;
-            
-            // Cache the decrypted image
-            imageCache.set(cacheKey, decryptedImageUrl);
-            
-            return decryptedImageUrl;
-
-        } catch (error) {
-            console.error('Image decryption error:', error);
-            showNotification('Failed to decrypt image', 'error');
-            return null;
-        } finally {
-            loadingOverlay.style.display = 'none';
-        }
-    }
-
-    uploadButton.addEventListener('click', () => {
-        fileInput.click();
-    });
-
-    fileInput.addEventListener('change', async (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        if (file.size > 32 * 1024 * 1024) {
-            showNotification('Image size must be less than 32MB', 'error');
-            return;
+        if (!roomCode || !userName) {
+            window.location.href = '/';
         }
 
-        const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        if (!validTypes.includes(file.type)) {
-            showNotification('Invalid file type. Please upload an image.', 'error');
-            return;
+        roomCodeElement.textContent = roomCode;
+
+        roomCodeElement.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(roomCode);
+                showNotification('Room code copied to clipboard', 'success');
+            } catch (err) {
+                showNotification('Failed to copy room code', 'error');
+            }
+        });
+
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'Just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+
+            return date.toLocaleString();
         }
 
-        loadingOverlay.style.display = 'flex';
+        function showNotification(message, type = 'success') {
+            notificationElement.textContent = message;
+            notificationElement.style.display = 'block';
+            notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
+            
+            setTimeout(() => {
+                notificationElement.style.display = 'none';
+            }, 3000);
+        }
 
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
+        function connectWebSocket() {
+            ws = new WebSocket(`${BASE_URL}/ws/${roomCode}`);
 
-            const response = await fetch(`${API_URL}/api/upload-image/${roomCode}`, {
-                method: 'POST',
-                body: formData
-            });
+            ws.onopen = () => {
+                reconnectAttempts = 0;
+                showNotification('Connected to chat room', 'success');
+            };
 
-            const result = await response.json();
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if (data.type === 'typing') {
+                    handleTypingIndicator(data);
+                } else if (data.type === 'user_count') {
+                    userCountElement.textContent = data.count;
+                } else {
+                    addMessage(data);
+                }
+            };
 
-            if (!result.success) {
-                throw new Error(result.error || 'Upload failed');
+            ws.onclose = () => {
+                if (reconnectAttempts < 5) {
+                    showNotification('Reconnecting...', 'error');
+                    setTimeout(() => {
+                        reconnectAttempts++;
+                        connectWebSocket();
+                    }, 1000 * Math.min(reconnectAttempts + 1, 5));
+                } else {
+                    showNotification('Connection lost. Please refresh the page.', 'error');
+                }
+            };
+
+            ws.onerror = () => {
+                showNotification('Connection error', 'error');
+            };
+        }
+
+        function handleTypingIndicator(data) {
+            if (data.sender !== userName) {
+                typingIndicator.textContent = `${data.sender} is typing...`;
+                typingIndicator.style.display = 'block';
+                
+                setTimeout(() => {
+                    typingIndicator.style.display = 'none';
+                }, 2000);
+            }
+        }
+
+        function addMessage(data) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            const initials = data.sender
+                .split(' ')
+                .map(word => word[0])
+                .join('')
+                .toUpperCase()
+                .slice(0, 2);
+            
+            const colors = [
+                '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', 
+                '#6366F1', '#8B5CF6', '#D946EF'
+            ];
+            const colorIndex = Array.from(data.sender).reduce((acc, char) => 
+                acc + char.charCodeAt(0), 0) % colors.length;
+            
+            let messageContent = `
+                <div class="avatar" style="background-color: ${colors[colorIndex]}">
+                    <div class="avatar-placeholder">${initials}</div>
+                </div>
+                <div class="message-content">
+                    <div class="message-header">
+                        <span class="author">${data.sender}</span>
+                        <span class="timestamp">${formatTimestamp(data.timestamp || Date.now())}</span>
+                    </div>
+                    <div class="text">${escapeHTML(data.content)}</div>
+            `;
+
+            if (data.image_url) {
+                messageContent += `
+                    <img src="${data.image_url}" alt="Shared image" 
+                         class="message-image" 
+                         onclick="showImageModal('${data.image_url}')"
+                         onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'%3E%3Crect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\' ry=\'2\'/%3E%3Ccircle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/%3E%3Cpolyline points=\'21 15 16 10 5 21\'/%3E%3C/svg%3E';"
+                    >
+                `;
             }
 
-            // Send message with image and encrypted key
+            messageContent += `</div>`;
+            messageDiv.innerHTML = messageContent;
+            
+            messages.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function showImageModal(url) {
+            modalImage.src = url;
+            imageModal.style.display = 'flex';
+        }
+
+        imageModal.addEventListener('click', () => {
+            imageModal.style.display = 'none';
+        });
+
+        // Optional: Handle escape key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && imageModal.style.display === 'flex') {
+                imageModal.style.display = 'none';
+            }
+        });
+
+        function escapeHTML(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function scrollToBottom() {
+            const lastMessage = messages.lastElementChild;
+            if (lastMessage) {
+                lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+        }
+
+        function sendTypingIndicator() {
+            if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
+                isTyping = true;
+                ws.send(JSON.stringify({
+                    type: 'typing',
+                    sender: userName
+                }));
+
+                clearTimeout(typingTimeout);
+                typingTimeout = setTimeout(() => {
+                    isTyping = false;
+                }, 2000);
+            }
+        }
+
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
             ws.send(JSON.stringify({
                 type: 'message',
-                content: '',
-                image_url: result.image_url,
-                encrypted_key: result.encrypted_key,
+                content: message,
                 sender: userName,
                 timestamp: Date.now()
             }));
-
-        } catch (error) {
-            showNotification('Failed to upload image', 'error');
-            console.error('Upload error:', error);
-        } finally {
-            loadingOverlay.style.display = 'none';
-            fileInput.value = '';
-        }
-    });
-
-    if (!roomCode || !userName) {
-        window.location.href = '/';
-    }
-
-    roomCodeElement.textContent = roomCode;
-
-    roomCodeElement.addEventListener('click', async () => {
-        try {
-            await navigator.clipboard.writeText(roomCode);
-            showNotification('Room code copied to clipboard', 'success');
-        } catch (err) {
-            showNotification('Failed to copy room code', 'error');
-        }
-    });
-
-    function formatTimestamp(timestamp) {
-        const date = new Date(timestamp);
-        const now = new Date();
-        const diffMs = now - date;
-        const diffMins = Math.floor(diffMs / 60000);
-        const diffHours = Math.floor(diffMins / 60);
-        const diffDays = Math.floor(diffHours / 24);
-
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        if (diffHours < 24) return `${diffHours}h ago`;
-        if (diffDays < 7) return `${diffDays}d ago`;
-
-        return date.toLocaleString();
-    }
-
-    function showNotification(message, type = 'success') {
-        notificationElement.textContent = message;
-        notificationElement.style.display = 'block';
-        notificationElement.style.backgroundColor = type === 'success' ? 'var(--success)' : 'var(--error)';
-        
-        setTimeout(() => {
-            notificationElement.style.display = 'none';
-        }, 3000);
-    }
-
-    function connectWebSocket() {
-        ws = new WebSocket(`${BASE_URL}/ws/${roomCode}`);
-
-        ws.onopen = () => {
-            reconnectAttempts = 0;
-            showNotification('Connected to chat room', 'success');
-        };
-
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            if (data.type === 'typing') {
-                handleTypingIndicator(data);
-            } else if (data.type === 'user_count') {
-                userCountElement.textContent = data.count;
-            } else {
-                addMessage(data);
-            }
-        };
-
-        ws.onclose = () => {
-            if (reconnectAttempts < 5) {
-                showNotification('Reconnecting...', 'error');
-                setTimeout(() => {
-                    reconnectAttempts++;
-                    connectWebSocket();
-                }, 1000 * Math.min(reconnectAttempts + 1, 5));
-            } else {
-                showNotification('Connection lost. Please refresh the page.', 'error');
-            }
-        };
-
-        ws.onerror = () => {
-            showNotification('Connection error', 'error');
-        };
-    }
-
-    function handleTypingIndicator(data) {
-        if (data.sender !== userName) {
-            typingIndicator.textContent = `${data.sender} is typing...`;
-            typingIndicator.style.display = 'block';
             
-            setTimeout(() => {
-                typingIndicator.style.display = 'none';
-            }, 2000);
-        }
-    }
-
-    async function addMessage(data) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'message';
-        
-        const initials = data.sender
-            .split(' ')
-            .map(word => word[0])
-            .join('')
-            .toUpperCase()
-            .slice(0, 2);
-        
-        const colors = [
-            '#7C3AED', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', 
-            '#6366F1', '#8B5CF6', '#D946EF'
-        ];
-        const colorIndex = Array.from(data.sender).reduce((acc, char) => 
-            acc + char.charCodeAt(0), 0) % colors.length;
-        
-        let messageContent = `
-            <div class="avatar" style="background-color: ${colors[colorIndex]}">
-                <div class="avatar-placeholder">${initials}</div>
-            </div>
-            <div class="message-content">
-                <div class="message-header">
-                    <span class="author">${data.sender}</span>
-                    <span class="timestamp">${formatTimestamp(data.timestamp || Date.now())}</span>
-                </div>
-                <div class="text">${escapeHTML(data.content)}</div>
-        `;
-
-        // Handle image content if present
-        if (data.image_url && data.encrypted_key) {
-            messageContent += `<div class="image-loading">Loading image...</div>`;
-            messageDiv.innerHTML = messageContent + '</div>';
-            messages.appendChild(messageDiv);
-            
-            const decryptedImageUrl = await decryptAndDisplayImage(data.image_url, data.encrypted_key);
-            
-            if (decryptedImageUrl) {
-                const imageContent = `
-                    <div class="image-container">
-                        <img src="${decryptedImageUrl}" 
-                            alt="Shared image" 
-                            class="message-image" 
-                            onclick="showImageModal('${decryptedImageUrl}')"
-                            onerror="this.onerror=null; this.src='/path/to/error-image.svg';">
-                    </div>
-                `;
-                
-                // Replace loading message with actual image
-                const imageLoadingDiv = messageDiv.querySelector('.image-loading');
-                if (imageLoadingDiv) {
-                    imageLoadingDiv.outerHTML = imageContent;
-                }
-            } else {
-                // Replace loading message with error
-                const imageLoadingDiv = messageDiv.querySelector('.image-loading');
-                if (imageLoadingDiv) {
-                    imageLoadingDiv.outerHTML = `
-                        <div class="image-error">
-                            Failed to load image. Click to try again.
-                        </div>
-                    `;
-                }
-            }
-        } else {
-            messageContent += '</div>';
-            messageDiv.innerHTML = messageContent;
-            messages.appendChild(messageDiv);
-        }
-
-        scrollToBottom();
-    }
-
-    // Add this CSS to your existing styles
-    const newStyles = `
-        .image-loading {
-            padding: 1rem;
-            margin-top: 0.5rem;
-            background: var(--bg-secondary);
-            border-radius: var(--border-radius);
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-
-        .image-error {
-            padding: 1rem;
-            margin-top: 0.5rem;
-            background: var(--bg-secondary);
-            border-radius: var(--border-radius);
-            color: var(--error);
-            cursor: pointer;
-        }
-
-        .image-container {
-            margin-top: 0.5rem;
-            position: relative;
-        }
-
-        .message-image {
-            max-width: 100%;
-            max-height: 300px;
-            border-radius: var(--border-radius);
-            cursor: pointer;
-            transition: transform 0.2s ease;
-        }
-
-        .message-image:hover {
-            transform: scale(1.02);
-        }
-    `;
-
-    // Add the styles to the document
-    const styleSheet = document.createElement("style");
-    styleSheet.textContent = newStyles;
-    document.head.appendChild(styleSheet);
-
-    function showImageModal(url) {
-        modalImage.src = url;
-        imageModal.style.display = 'flex';
-    }
-
-    imageModal.addEventListener('click', () => {
-        imageModal.style.display = 'none';
-    });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && imageModal.style.display === 'flex') {
-            imageModal.style.display = 'none';
-        }
-    });
-
-    function escapeHTML(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    function scrollToBottom() {
-        const lastMessage = messages.lastElementChild;
-        if (lastMessage) {
-            lastMessage.scrollIntoView({ behavior: 'smooth', block: 'end' });
-        }
-    }
-
-    function sendTypingIndicator() {
-        if (!isTyping && ws && ws.readyState === WebSocket.OPEN) {
-            isTyping = true;
-            ws.send(JSON.stringify({
-                type: 'typing',
-                sender: userName
-            }));
-
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                isTyping = false;
-            }, 2000);
-        }
-    }
-
-    messageForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        
-        const message = messageInput.value.trim();
-        if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
-        
-        ws.send(JSON.stringify({
-            type: 'message',
-            content: message,
-            sender: userName,
-            timestamp: Date.now()
-        }));
-        
-        messageInput.value = '';
-        messageInput.style.height = 'auto';
-        return false;
-    });
-
-    messageInput.addEventListener('input', (e) => {
-        e.target.style.height = 'auto';
-        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-        
-        sendTypingIndicator();
-    });
-
-    messageInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            const submitEvent = new Event('submit', {
-                cancelable: true,
-                bubbles: true
-            });
-            messageForm.dispatchEvent(submitEvent);
-            return false;
-        }
-    });
-
-    document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            if (!ws || ws.readyState === WebSocket.CLOSED) {
-                reconnectAttempts = 0;
-                connectWebSocket();
-            }
-        }
-    });
-
-    let viewheight = window.innerHeight;
-    window.addEventListener('resize', () => {
-        if (window.innerHeight < viewheight) {
-            scrollToBottom();
-        }
-        viewheight = window.innerHeight;
-    });
-
-    async function loadRoomDetails() {
-        try {
-            const response = await fetch(`${API_URL}/api/rooms/${roomCode}`);
-            if (!response.ok) throw new Error('Room not found');
-            
-            const room = await response.json();
-            if (room.messages?.length > 0) {
-                for (const message of room.messages) {
-                    await addMessage(message);
-                }
-            }
-        } catch (error) {
-            showNotification('Failed to load room details', 'error');
-        }
-    }
-
-    connectWebSocket();
-    loadRoomDetails();
-
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js').catch(error => {
-                console.error('ServiceWorker registration failed:', error);
-            });
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
         });
-    }
+
+        messageInput.addEventListener('input', (e) => {
+            e.target.style.height = 'auto';
+            e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+            
+            sendTypingIndicator();
+        });
+
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                messageForm.dispatchEvent(new Event('submit'));
+            }
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                if (!ws || ws.readyState === WebSocket.CLOSED) {
+                    reconnectAttempts = 0;
+                    connectWebSocket();
+                }
+            }
+        });
+
+        let viewheight = window.innerHeight;
+        window.addEventListener('resize', () => {
+            if (window.innerHeight < viewheight) {
+                scrollToBottom();
+            }
+            viewheight = window.innerHeight;
+        });
+
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const message = messageInput.value.trim();
+            if (!message || !ws || ws.readyState !== WebSocket.OPEN) return;
+            
+            ws.send(JSON.stringify({
+                type: 'message',
+                content: message,
+                sender: userName,
+                timestamp: Date.now()
+            }));
+            
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            return false; // Prevent form submission
+        });
+
+        messageInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const submitEvent = new Event('submit', {
+                    cancelable: true,
+                    bubbles: true
+                });
+                messageForm.dispatchEvent(submitEvent);
+                return false;
+            }
+        });
 
 
+        async function loadRoomDetails() {
+            try {
+                const apiUrl = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:10000'
+                    : 'https://chat-8ynk.onrender.com';
+                
+                const response = await fetch(`${apiUrl}/api/rooms/${roomCode}`);
+                if (!response.ok) throw new Error('Room not found');
+                
+                const room = await response.json();
+                if (room.messages?.length > 0) {
+                    room.messages.forEach(message => addMessage(message));
+                }
+            } catch (error) {
+                showNotification('Failed to load room details', 'error');
+            }
+        }
+
+        connectWebSocket();
+        loadRoomDetails();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(error => {
+                    console.error('ServiceWorker registration failed:', error);
+                });
+            });
+        }
     </script>
 </body>
 </html>
